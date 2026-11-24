@@ -6,7 +6,7 @@ An AI-powered business launch, branding, marketing, design and growth platform.
 Users describe their business once; Brand AI reuses that **approved business
 context** across every studio.
 
-> **Status:** Phase 6 (Website Builder) complete and awaiting approval.
+> **Status:** Phase 7 (Stationery & Merchandise) complete and awaiting approval.
 > See [docs/PHASE_STATUS.md](docs/PHASE_STATUS.md).
 
 ## Available today
@@ -31,6 +31,9 @@ context** across every studio.
 - **Website Builder** (`/websites`): business sites, landing pages, portfolios and online stores written from
   your profile (or started from a template), edited with a live desktop/phone preview, published at
   `/sites/:slug` or your own domain (DNS-verified), with working contact and order-enquiry forms.
+- **Stationery & Merchandise** (`/stationery`): print-ready business cards (with bleed) and letterheads; T-shirts,
+  uniforms, tote bags and mugs with mockups and real-size print artwork; product labels and packaging dielines;
+  numbered invoices and quotations with totals calculated in code; and a printable company profile brochure.
 
 **AI is free by default.** Brand AI uses Google Gemini's free tier (`AI_TEXT_PROVIDER=gemini`). Get a free
 key at https://aistudio.google.com/apikey and set `GEMINI_API_KEY`. Other free options: Groq, OpenRouter free

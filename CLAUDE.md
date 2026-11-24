@@ -26,6 +26,7 @@ Read `docs/PHASE_STATUS.md` first; never start a phase without explicit approval
 - Generated SVG must be built from validated data only (see `src/server/brand/logo-renderer.js`, `src/server/design/renderer.js`); never embed user markup. Text goes through `src/server/brand/text.js` (outlined paths); images only as data URIs of validated stored files of the same business. Show generated SVG via `<img>`.
 - Phase modules live in `src/modules/<key>/`, depend on `src/server/*`, never the reverse. Follow `src/modules/launch` (schemas → sections → prompts → service → mock-fixtures → components).
 - Websites: AI returns structured content only (`aiSiteSchema`); render exclusively through `src/modules/website/components/site/*` (no hooks, container queries); links must pass `isSafeLink`; public pages read only published snapshots. Publishing/domains need `website:publish`.
+- Money: integer minor units (BigInt) via `src/modules/stationery/money.js`; never floats; return as strings in JSON. Print-size artwork goes through `src/server/stationery/draw.js` (`doc()` = physical mm).
 - Studio outputs: store in `projects`/`project_outputs` (append-only versions); render/edit with `src/components/structured/*`.
 - Register a mock fixture for every new AI task so e2e can run with `AI_TEXT_PROVIDER=mock`; fixtures must pass their schema (unit test).
 - Numbers the business relies on (totals, shares) are computed in code, never trusted from AI output. Charts follow the dataviz skill (validated colour tokens, table view).

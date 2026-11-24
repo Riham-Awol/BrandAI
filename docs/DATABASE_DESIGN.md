@@ -11,6 +11,7 @@ Schema: [`prisma/schema.prisma`](../prisma/schema.prisma) · Migrations: `prisma
 | Migration | Phase | Summary |
 |---|---|---|
 | `20261124114911_init_foundation` | 0 | Foundation tables below |
+| `20261124202445_phase7_stationery` | 7 | `business_details`, `brand_materials`, `brand_material_revisions`, `business_documents`; `ProjectType.COMPANY_PROFILE`; enums `MaterialKind`, `DocumentType`, `DocumentStatus` |
 | `20261124172827_phase6_website_builder` | 6 | `websites`, `website_versions`, `website_submissions`; enums `WebsiteType`, `WebsiteStatus`, `DomainStatus` |
 | `20261124165358_phase5_design_studio` | 5 | `designs`, `design_revisions`; enum `DesignKind` |
 | `20261124163027_phase4_social_studio` | 4 | `ProjectType.SOCIAL_STUDIO`; `social_posts`, `social_post_revisions` |
@@ -70,6 +71,10 @@ businesses 1─* business_products | business_services | business_locations | bu
 | `marketing_plans` *(P3)* | Immutable approved marketing plans (`data` JSON: settings, all section contents, computed budget), `status` APPROVED/SUPERSEDED, `version`, approver | unique (`business_id`,`version`); idx (`business_id`,`status`) | cascade with business |
 
 | `social_posts` *(P4)* | Planned/written post: `scheduled_date` (DATE), `platform`, `format`, pillar, title, objective, `is_promotion`, `status` IDEA/DRAFT/READY, current `content` JSON, `version`, `is_mock`, source `calendar_output_id` | idx (`project_id`,`scheduled_date`), (`workspace_id`,`deleted_at`), `business_id` | soft delete |
+| `business_details` *(P7)* | 1:1 business: legal name, address, contact, registration/tax numbers, bank details, `currency`, `default_tax_rate_bp`, `payment_terms_days`, invoice/quote prefixes and next numbers | unique `business_id` | cascade with business |
+| `brand_materials` *(P7)* | Branded item: `kind` (card, letterhead, tshirt, uniform, bag, mug, label, packaging), `name`, `spec` JSON, `version`, `is_mock` | idx (`workspace_id`,`deleted_at`), (`business_id`,`kind`) | soft delete |
+| `brand_material_revisions` *(P7)* | Every saved version of a material's spec | unique (`material_id`,`version`) | cascade |
+| `business_documents` *(P7)* | Invoice/quote: `number`, `status`, `customer` JSON, `issue_date`/`due_date` (DATE), `currency`, `lines` JSON (decimal strings), intro/notes/terms, BigInt `subtotal_minor`/`tax_minor`/`total_minor` (computed in code), `source_quote_id`, `sent_at`, `paid_at` | unique (`business_id`,`type`,`number`); idx (`business_id`,`type`,`status`) | soft delete (unsent drafts only) |
 | `websites` *(P6)* | Website per business: `type`, `name`, unique `slug`, `status` DRAFT/PUBLISHED/UNPUBLISHED, draft `config` JSON, `draft_revision` (optimistic concurrency), `published_version`, unique `custom_domain` + `domain_status`/`domain_token`, `is_mock` | idx (`workspace_id`,`deleted_at`), `business_id` | soft delete (slug/domain released) |
 | `website_versions` *(P6)* | Immutable published snapshot: `config` + resolved `brand` (incl. vector logo) | unique (`website_id`,`version`) | cascade with website |
 | `website_submissions` *(P6)* | Contact/order messages from a published site (`kind`, name, email, phone, message, item, page, salted `ip_hash`, `read_at`) | idx (`website_id`,`created_at`), `workspace_id` | cascade; deletable by editors |

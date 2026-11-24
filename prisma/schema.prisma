@@ -111,6 +111,8 @@ model Workspace {
   designs            Design[]
   websites           Website[]
   websiteSubmissions WebsiteSubmission[]
+  materials          BrandMaterial[]
+  documents          BusinessDocument[]
 
   @@index([ownerId])
   @@index([deletedAt])
@@ -190,6 +192,9 @@ model Business {
   goals           BusinessGoal[]
   designs         Design[]
   websites        Website[]
+  materials       BrandMaterial[]
+  documents       BusinessDocument[]
+  details         BusinessDetails?
 
   @@index([workspaceId, deletedAt])
   @@index([createdById])
@@ -420,6 +425,7 @@ enum ProjectType {
   BRAND_STUDIO
   STRATEGY_STUDIO
   SOCIAL_STUDIO
+  COMPANY_PROFILE
 }
 
 enum ProjectStatus {
@@ -960,4 +966,138 @@ model WebsiteSubmission {
   @@index([websiteId, createdAt])
   @@index([workspaceId])
   @@map("website_submissions")
+}
+
+// ── Phase 7: Stationery & Merchandise ───────────────────────────────────────
+
+// Company details printed on stationery and documents (one row per business).
+model BusinessDetails {
+  id                 String   @id @default(uuid()) @db.Char(36)
+  businessId         String   @unique @map("business_id") @db.Char(36)
+  legalName          String?  @map("legal_name") @db.VarChar(200)
+  addressLine1       String?  @map("address_line1") @db.VarChar(200)
+  addressLine2       String?  @map("address_line2") @db.VarChar(200)
+  city               String?  @db.VarChar(120)
+  postcode           String?  @db.VarChar(40)
+  country            String?  @db.VarChar(120)
+  email              String?  @db.VarChar(254)
+  phone              String?  @db.VarChar(40)
+  website            String?  @db.VarChar(300)
+  registrationNumber String?  @map("registration_number") @db.VarChar(80)
+  taxNumber          String?  @map("tax_number") @db.VarChar(80)
+  bankDetails        String?  @map("bank_details") @db.Text
+  currency           String   @default("GBP") @db.Char(3)
+  defaultTaxRateBp   Int      @default(0) @map("default_tax_rate_bp")
+  paymentTermsDays   Int      @default(14) @map("payment_terms_days")
+  invoicePrefix      String   @default("INV-") @map("invoice_prefix") @db.VarChar(12)
+  quotePrefix        String   @default("QUO-") @map("quote_prefix") @db.VarChar(12)
+  nextInvoiceNumber  Int      @default(1) @map("next_invoice_number")
+  nextQuoteNumber    Int      @default(1) @map("next_quote_number")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("business_details")
+}
+
+enum MaterialKind {
+  BUSINESS_CARD
+  LETTERHEAD
+  TSHIRT
+  UNIFORM
+  BAG
+  MUG
+  LABEL
+  PACKAGING
+}
+
+// A branded print or merchandise item. `spec` holds validated layout/content;
+// artwork and mockups are drawn from it with the approved brand.
+model BrandMaterial {
+  id          String       @id @default(uuid()) @db.Char(36)
+  workspaceId String       @map("workspace_id") @db.Char(36)
+  businessId  String       @map("business_id") @db.Char(36)
+  kind        MaterialKind
+  name        String       @db.VarChar(160)
+  spec        Json
+  version     Int          @default(1)
+  isMock      Boolean      @default(false) @map("is_mock")
+  createdById String       @map("created_by_id") @db.Char(36)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  deletedAt   DateTime?    @map("deleted_at")
+
+  workspace Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  business  Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  revisions BrandMaterialRevision[]
+
+  @@index([workspaceId, deletedAt])
+  @@index([businessId, kind])
+  @@map("brand_materials")
+}
+
+model BrandMaterialRevision {
+  id          String   @id @default(uuid()) @db.Char(36)
+  materialId  String   @map("material_id") @db.Char(36)
+  version     Int
+  spec        Json
+  createdById String   @map("created_by_id") @db.Char(36)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  material BrandMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([materialId, version])
+  @@map("brand_material_revisions")
+}
+
+enum DocumentType {
+  INVOICE
+  QUOTE
+}
+
+enum DocumentStatus {
+  DRAFT
+  SENT
+  PAID
+  ACCEPTED
+  DECLINED
+  VOID
+}
+
+// Invoices and quotations. Money is stored in minor units (BigInt); totals are
+// computed in code from the lines and stored for listing/reporting.
+model BusinessDocument {
+  id            String         @id @default(uuid()) @db.Char(36)
+  workspaceId   String         @map("workspace_id") @db.Char(36)
+  businessId    String         @map("business_id") @db.Char(36)
+  type          DocumentType
+  number        String         @db.VarChar(40)
+  status        DocumentStatus @default(DRAFT)
+  customer      Json
+  issueDate     DateTime       @map("issue_date") @db.Date
+  dueDate       DateTime?      @map("due_date") @db.Date
+  currency      String         @db.Char(3)
+  lines         Json
+  intro         String?        @db.Text
+  notes         String?        @db.Text
+  terms         String?        @db.Text
+  subtotalMinor BigInt         @map("subtotal_minor")
+  taxMinor      BigInt         @map("tax_minor")
+  totalMinor    BigInt         @map("total_minor")
+  sourceQuoteId String?        @map("source_quote_id") @db.Char(36)
+  sentAt        DateTime?      @map("sent_at")
+  paidAt        DateTime?      @map("paid_at")
+  createdById   String         @map("created_by_id") @db.Char(36)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  deletedAt     DateTime?      @map("deleted_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  business  Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, type, number])
+  @@index([workspaceId, deletedAt])
+  @@index([businessId, type, status])
+  @@map("business_documents")
 }

@@ -177,6 +177,28 @@ Public (no login):
 | POST | `/api/v1/sites/:site/contact` | form-encoded `{ name, email, phone?, message, kind, item?, page, website (honeypot) }` → 303 back with `?sent=1` / `?error=1`; rate limit `siteForm` (5 / 10 min / IP) |
 | GET | `/api/v1/sites/:site/media/:fileId` | images referenced by the published version only |
 
+### Stationery & Merchandise (Phase 7)
+Money is returned as minor-unit **strings** (`totalMinor: "14400"` = £144.00); dates are `YYYY-MM-DD`.
+
+| Method | Path | Permission | Body / notes |
+|---|---|---|---|
+| GET / PUT | `/workspaces/:ws/businesses/:biz/details` | read / `business:update` | business details (legal name, address, contact, numbers, bank details, currency, `defaultTaxRate` %, `paymentTermsDays`, prefixes, next numbers) |
+| GET / POST | `/workspaces/:ws/materials` | read / `business:update` | POST `{ businessId, kind, spec, isMock }` |
+| POST | `/workspaces/:ws/materials/options` | `business:update` (cards, letterheads) / `ai:generate` (others) | `{ businessId, kind, brief?, person? }` → 3 `{ spec, views[] }`; nothing saved |
+| POST | `/workspaces/:ws/materials/preview` | read | `{ businessId, kind, spec }` → `{ views[] }` |
+| GET / PATCH / DELETE | `/workspaces/:ws/materials/:id` | read / `business:update` | PATCH `{ spec }` → new version |
+| POST | `/workspaces/:ws/materials/:id/revisions/:version` · `/duplicate` | `business:update` | restore / copy |
+| GET | `/workspaces/:ws/materials/:id/render?view=&download=1` | read | SVG of one view (front, back, page, mockup, artwork, label, dieline) |
+| GET / POST | `/workspaces/:ws/documents[?type=INVOICE\|QUOTE]` | read / `business:update` | POST `{ businessId, type, customer, issueDate, dueDate?, currency, lines[{ description, quantity, unitPrice, taxRate }], intro?, notes?, terms? }` → numbered draft with computed totals |
+| GET | `/workspaces/:ws/documents/defaults?businessId&type` | read | currency, tax rate, dates from business details |
+| POST | `/workspaces/:ws/documents/draft-text` | `ai:generate` | `{ businessId, type, brief?, lines[], customerName? }` → `{ intro, notes, terms }` (no numbers; not saved) |
+| GET / PUT / DELETE | `/workspaces/:ws/documents/:id` | read / `business:update` | PUT replaces a **draft** (409 otherwise); DELETE only unsent drafts |
+| POST | `/workspaces/:ws/documents/:id/status` | `business:update` | `{ status }` following the allowed transitions (409 otherwise) |
+| POST | `/workspaces/:ws/documents/:id/convert` · `/duplicate` | `business:update` | quote → draft invoice (idempotent) / copy |
+| … | `/workspaces/:ws/company-profiles` | as other studios | studio engine routes (project, sections, generate, accept, versions) |
+
+Printable pages (session required): `/print/documents/:id`, `/print/profiles/:id`.
+
 ### Brand hub & assets (Phase 2)
 | Method | Path | Permission | Notes |
 |---|---|---|---|

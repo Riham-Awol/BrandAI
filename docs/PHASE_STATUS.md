@@ -8,10 +8,11 @@
 | 3 — Marketing Strategy Studio | APPROVED | ☑ |
 | 4 — Social Media Studio | APPROVED | ☑ |
 | 5 — Creative Design Studio | APPROVED | ☑ |
-| 6 — Website Builder | **COMPLETE — awaiting approval** | ☐ |
-| 7–10 | NOT STARTED | ☐ |
+| 6 — Website Builder | APPROVED | ☑ |
+| 7 — Stationery & Merchandise | **COMPLETE — awaiting approval** | ☐ |
+| 8–10 | NOT STARTED | ☐ |
 
-**Current phase:** 6 (Website Builder) · **Last updated:** 2026-11-24
+**Current phase:** 7 (Stationery & Merchandise) · **Last updated:** 2026-11-24
 
 **Second free AI provider — done (2026-11-24, ADR 011):** OpenRouter free models are configured as a fallback
 (`AI_TEXT_FALLBACK_PROVIDERS=openrouter`); verified live (Gemini failed → OpenRouter answered a design request
@@ -20,7 +21,52 @@ same way later (`openrouter,groq`).
 
 ---
 
-## Phase 6 — Website Builder
+## Phase 7 — Stationery & Merchandise
+
+Plan and acceptance criteria: [phases/PHASE_7.md](./phases/PHASE_7.md)
+
+### Implemented and verified
+- `/stationery` hub; branded materials (cards, letterheads, T-shirts, polos, totes, mugs, labels, packaging) with
+  live preview, versions and print-ready SVG/PNG/PDF exports; `/stationery/details` business details;
+  invoices & quotations with code-computed totals, numbering, statuses, quote → invoice and printable A4 pages
+  (`/print/documents/:id`); company profile studio with printable brochure (`/print/profiles/:id`).
+- New shared pieces: `src/server/stationery/{draw,renderer}.js` (vector drawing at physical size),
+  `src/modules/stationery/money.js` (BigInt money maths), `src/components/print/print-toolbar.jsx`.
+
+### Tests (all passing)
+| Suite | Count |
+|---|---|
+| Unit | 146 (Phase 6: 132) |
+| Integration (MySQL + mock provider) | 107 (Phase 6: 99) |
+| End-to-end (desktop + mobile) | 35 (Phase 6: 31) |
+`npm run lint`, `npm run build` pass; all Phase 0–6 suites pass.
+
+### Live verification (2026-11-24, free AI)
+- T-shirt concepts written by Gemini `gemini-flash-lite-latest` (93 s incl. retries) and rendered; company profile
+  overview by Gemini in 1.4 s — specific, on-brand and without invented facts.
+- Found and fixed: business names without an approved logo were truncated on merch ("Kirkga te…") → sizing now
+  uses both box dimensions (regression test); light inks were invisible in the transparent artwork preview →
+  artwork previews on the product colour.
+
+### Defects found and fixed during the phase
+- Company profile cover lost its brand background (conflicting classes) → explicit cover tone.
+- Brochure `<style>` with two text children caused a hydration error → single string.
+- New invoices could keep a 0 % tax rate if typed before defaults loaded → defaults apply until a rate is edited.
+
+### Known limitations
+- Documents are sent by printing/saving as PDF and attaching; emailing, payment links and reminders need the
+  Phase 8 approval workflow and integrations.
+- Label legal content (allergens, nutrition) is the owner's responsibility; the app prints only what is entered.
+- Mockups are stylised vector illustrations, not photographic renders; print files are what printers use.
+- Fonts are Latin-only; PDF via the browser's print dialog.
+
+### Handover to Phase 8 (Calendar & Automation)
+- Invoice/quote status changes are audited and ready for approval rules and reminders (overdue flag computed).
+- Social posts, designs, websites and documents all carry statuses/versions for scheduling and approvals.
+
+---
+
+## Phase 6 — Website Builder (APPROVED)
 
 Plan and acceptance criteria: [phases/PHASE_6.md](./phases/PHASE_6.md)
 

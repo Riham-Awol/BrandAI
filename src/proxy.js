@@ -9,7 +9,7 @@ import { NextResponse } from "next/server";
  *    the Data Access Layer (src/server/auth/session.js) on every request.
  */
 const SESSION_COOKIES = ["__Secure-next-auth.session-token", "next-auth.session-token"];
-const PROTECTED = [/^\/dashboard(\/|$)/, /^\/launch(\/|$)/, /^\/businesses(\/|$)/, /^\/brand(\/|$)/, /^\/strategy(\/|$)/, /^\/social(\/|$)/, /^\/design(\/|$)/, /^\/websites(\/|$)/, /^\/settings(\/|$)/];
+const PROTECTED = [/^\/dashboard(\/|$)/, /^\/launch(\/|$)/, /^\/businesses(\/|$)/, /^\/brand(\/|$)/, /^\/strategy(\/|$)/, /^\/social(\/|$)/, /^\/design(\/|$)/, /^\/websites(\/|$)/, /^\/settings(\/|$)/, /^\/stationery(\/|$)/, /^\/print(\/|$)/];
 const PASS_THROUGH = /^\/(api|_next|sites)(\/|$)|^\/favicon\.ico$/;
 
 function appHosts() {

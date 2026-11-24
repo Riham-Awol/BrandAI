@@ -9,7 +9,7 @@ export const PRODUCT_PHASES = [
   { phase: 4, key: "social", title: "Social Media Studio", summary: "Captions, scripts, carousels and content calendars.", available: true, href: "/social" },
   { phase: 5, key: "design", title: "Creative Design Studio", summary: "Posters, flyers, ads and on-brand social designs.", available: true, href: "/design" },
   { phase: 6, key: "website", title: "Website Builder", summary: "Generate, edit and publish business websites.", available: true, href: "/websites" },
-  { phase: 7, key: "stationery", title: "Stationery & Merchandise", summary: "Business cards, invoices, packaging and merch.", available: false },
+  { phase: 7, key: "stationery", title: "Stationery & Merchandise", summary: "Business cards, invoices, packaging and merch.", available: true, href: "/stationery" },
   { phase: 8, key: "automation", title: "Calendar & Automation", summary: "Scheduling, approvals and permission-based publishing.", available: false },
   { phase: 9, key: "analytics", title: "Analytics & Insights", summary: "Performance reports and AI recommendations.", available: false },
   { phase: 10, key: "admin", title: "Teams, Agencies & Billing", summary: "Clients, roles, plans and AI credits.", available: false },

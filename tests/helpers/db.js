@@ -4,6 +4,7 @@ const TABLES = [
   "website_submissions",
   "website_versions",
   "websites", "designs",
+  "brand_material_revisions", "brand_materials", "business_documents", "business_details",
   "social_post_revisions", "social_posts",
   "marketing_plans",
   "brand_assets", "brand_identities", "storage_objects",

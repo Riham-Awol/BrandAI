@@ -106,3 +106,19 @@ test("mobile layout: website editor and published site fit the screen", async ({
   overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test("mobile layout: invoice editor and branded item editor fit the screen", async ({ page }) => {
+  await registerViaUi(page, newUser());
+  await page.goto("/stationery/documents/new?type=INVOICE");
+  await page.getByLabel("Business name").fill("Mobile Co");
+  await page.getByLabel("Item 1 description").fill("Work");
+  let overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+  await page.goto("/stationery/materials/new?kind=MUG");
+  await page.getByLabel("Business name").fill("Mobile Co");
+  await page.getByRole("button", { name: "Suggest 3 designs" }).click();
+  await page.getByRole("button", { name: "Use this design" }).first().click();
+  await expect(page.getByRole("img", { name: /^Preview:/ })).toBeVisible();
+  overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+});
