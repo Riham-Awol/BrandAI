@@ -37,6 +37,13 @@ Plan and acceptance criteria: [phases/PHASE_4.md](./phases/PHASE_4.md)
 | End-to-end (desktop + mobile) | 25 (Phase 3: 22) |
 `npm run lint`, `npm run build` pass; all Phase 0–3 suites pass.
 
+### Live verification (free Gemini tier, 2026-11-24)
+- **Content calendar generated successfully with real AI** (gemini-flash-lite-latest, 11 s); 8 posts created from it.
+- Social strategy and the 4-post batch could not complete: Google's free tier returned 429 (daily quota
+  exhausted) on the main models and 503/timeouts on the lite models. The app reported "busy, try again"
+  and left the posts as ideas — nothing invented. All flows are verified with the mock provider.
+- This reinforces the open follow-up: add Groq as a second free provider.
+
 ### Defects found and fixed
 - React lint (setState inside effects) in the posts board/editor → fetches inlined with cancellation.
 - Caption fields rendered as single-line inputs → prose fields always multi-line in the structured editor.
