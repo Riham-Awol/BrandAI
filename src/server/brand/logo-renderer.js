@@ -158,7 +158,9 @@ export async function renderLogoSvg(concept, { name, variant = "horizontal", the
   const colors = themeColors(concept, theme);
   const tracking = Math.min(0.3, Math.max(-0.05, concept.letterSpacing ?? 0));
 
-  const showMark = variant !== "wordmark";
+  // Name-only ("wordmark") concepts have no symbol: every layout except the
+  // icon-only variant shows just the name; the icon variant uses the initial.
+  const showMark = variant === "mark" || (variant !== "wordmark" && concept.markType !== "wordmark");
   const showText = variant !== "mark";
   const fallbackLetter = label.replace(/[^\p{L}\p{N}]/gu, "").charAt(0).toUpperCase() || "B";
 

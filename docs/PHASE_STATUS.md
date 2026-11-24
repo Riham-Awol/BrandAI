@@ -52,13 +52,21 @@ Plan and acceptance criteria: [phases/PHASE_2.md](./phases/PHASE_2.md). Free-onl
 - Default AI text provider switched from Anthropic (paid) to **Google Gemini free tier** via a new
   OpenAI-compatible adapter that also supports Groq, OpenRouter free models, Ollama and any compatible
   endpoint (ADR 010). Strict JSON-schema output with automatic fallback and one repair attempt.
-- Tests: 10 new (unit + integration against a local HTTP server imitating the provider). Totals now
-  80 unit · 63 integration · 19 e2e — all passing.
-- Live check: a Gemini key was saved to the environment but Google rejected it as invalid
-  ("Please pass a valid API key"), so real output is still unverified. The key needs to be re-entered.
+- Automatic model fallback: Google retires free models for new users and returns 503 under high demand,
+  so the Gemini preset uses the `gemini-flash-latest` alias plus a fallback chain
+  (`AI_TEXT_FALLBACK_MODELS`); 404/503/429 move to the next model.
+- Renderer fix found during live testing: name-only (wordmark) logo concepts no longer get a stray
+  initial in horizontal/stacked layouts.
+- Tests: 81 unit · 65 integration · 19 e2e — all passing.
+- **Live verification (free Gemini tier, 2026-11-24): 10/10 real generations succeeded** — Launch
+  (idea analysis, names, industry) and Brand (personality, voice, taglines, palettes, typography, logo
+  concepts, guidelines) followed by identity approval. All AI outputs passed schema validation; logo specs
+  used only valid fonts/icons/colours. Served by `gemini-3.5-flash` via fallback; ~17 s average per
+  section; ~15k tokens; $0.
 
 ### Known limitations
-- **Real AI still not verified**; all AI paths verified with the mock provider and a provider simulator.
+- Free-tier capacity varies minute to minute (503 "high demand"); the fallback chain absorbs this, but
+  if every model is busy users see "busy or unavailable, try again shortly".
 - Logos are typographic/icon-based compositions, not illustrations. Illustrative imagery would need an
   image model (a free option such as Pollinations or Hugging Face can be added behind the existing image-provider boundary).
 - Wordmarks support Latin scripts only (bundled font subsets); unsupported characters fall back to Inter and the UI shows a warning.

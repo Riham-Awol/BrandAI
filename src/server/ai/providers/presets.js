@@ -10,7 +10,10 @@ export const TEXT_PROVIDER_PRESETS = {
   gemini: {
     label: "Google Gemini (free tier via Google AI Studio)",
     baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
-    defaultModel: "gemini-2.5-flash",
+    // "-latest" aliases follow Google's current free models; fallbacks are tried when a
+    // model is retired, overloaded (503) or rate-limited (429). Verified 2026-11.
+    defaultModel: "gemini-flash-latest",
+    fallbackModels: ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3-flash-preview", "gemini-flash-lite-latest", "gemini-3.5-flash-lite"],
     keyEnv: "GEMINI_API_KEY",
     requiresKey: true,
   },
@@ -52,10 +55,15 @@ export function resolvePreset(provider, env) {
   if (!preset) return null;
   const baseUrl = (env.AI_BASE_URL || preset.baseUrl || "").replace(/\/+$/, "");
   const model = env.AI_TEXT_MODEL || preset.defaultModel;
+  const fallbackModels = env.AI_TEXT_FALLBACK_MODELS
+    ? env.AI_TEXT_FALLBACK_MODELS.split(",").map((m) => m.trim()).filter(Boolean)
+    : env.AI_TEXT_MODEL
+      ? []
+      : (preset.fallbackModels ?? []);
   const apiKey = (preset.keyEnv && env[preset.keyEnv]) || env.AI_API_KEY || undefined;
   const missing = [];
   if (!baseUrl) missing.push("AI_BASE_URL");
   if (!model) missing.push("AI_TEXT_MODEL");
   if (preset.requiresKey && !apiKey) missing.push(preset.keyEnv);
-  return { name: provider, label: preset.label, baseUrl, model, apiKey, missing };
+  return { name: provider, label: preset.label, baseUrl, model, fallbackModels: fallbackModels.filter((m) => m !== model), apiKey, missing };
 }

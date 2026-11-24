@@ -22,6 +22,7 @@ const envSchema = z.object({
   AI_TEXT_PROVIDER: z.enum(["gemini", "groq", "openrouter", "ollama", "openai_compatible", "anthropic", "mock"]).default("gemini"),
   AI_IMAGE_PROVIDER: z.enum(["none", "mock"]).default("none"),
   AI_TEXT_MODEL: optionalString,
+  AI_TEXT_FALLBACK_MODELS: optionalString,
   AI_BASE_URL: optionalString,
   AI_API_KEY: optionalString,
   GEMINI_API_KEY: optionalString,

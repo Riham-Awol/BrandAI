@@ -105,7 +105,8 @@ Production startup refuses mock AI providers and the console email provider.
 Phase-specific limitations are listed in [docs/PHASE_STATUS.md](docs/PHASE_STATUS.md).
 - Live AI output has not been verified yet (no API key in the build environment); AI flows are tested with the mock provider.
 - AI text uses free tiers (Gemini by default): rate-limited, quality varies by model, and each provider has its
-  own data-use terms. Live AI output has not yet been verified in the build environment.
+  own data-use terms. Verified live on the Gemini free tier (both studios). If Google retires or overloads a
+  model, the app falls back to the next one (`AI_TEXT_FALLBACK_MODELS`).
 - Email is not connected (needs Resend; free tier available).
   File storage works out of the box with the free `database` adapter (≤5 MB per file).
 - Logos are typographic/icon compositions rendered as vectors; wordmarks support Latin scripts only.

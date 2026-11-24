@@ -23,3 +23,8 @@ working through the provider-independent orchestrator (ADR 005).
 − Free tiers have their own data-use terms (some may use prompts to improve their products) and change
   limits/model names over time. Review terms before production and keep `AI_TEXT_MODEL` current.
 − Ollama is free and private but needs your own machine/server; it cannot run on Vercel.
+
+**Update (live verification).** Google retired `gemini-2.5-flash` for new keys and free models return 503
+under load. The Gemini preset now defaults to the `gemini-flash-latest` alias with a fallback chain; the
+adapter moves to the next model on 404/503/429. Verified live: 10/10 generations across both studios.
+Note for sandboxed environments: Node's built-in fetch only uses an HTTPS proxy when `NODE_USE_ENV_PROXY=1`.

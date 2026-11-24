@@ -101,6 +101,17 @@ describe("logo renderer", () => {
     expect(cjk.warnings[0]).toMatch(/Latin only/);
   });
 
+  it("renders name-only concepts without a symbol except in the icon variant", async () => {
+    const wordmark = { ...concept, markType: "wordmark", icon: "" };
+    const plain = await renderLogoSvg(wordmark, { name: "Crust", variant: "wordmark" });
+    for (const variant of ["horizontal", "stacked"]) {
+      const { svg } = await renderLogoSvg(wordmark, { name: "Crust", variant });
+      expect(svg.match(/<path/g).length).toBe(plain.svg.match(/<path/g).length);
+    }
+    const mark = await renderLogoSvg(wordmark, { name: "Crust", variant: "mark" });
+    expect(mark.svg).toContain("<path");
+  });
+
   it("applies letter case", () => {
     expect(applyCase("crumb and co", "title")).toBe("Crumb And Co");
     expect(applyCase("Crumb", "upper")).toBe("CRUMB");

@@ -7,8 +7,12 @@ import { SECTION_SCHEMAS as BRAND } from "@/modules/brand/schemas.js";
 
 describe("provider presets", () => {
   it("resolves the free Gemini preset and reports a missing key", () => {
-    expect(resolvePreset("gemini", {})).toMatchObject({ baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.5-flash", missing: ["GEMINI_API_KEY"] });
-    expect(resolvePreset("gemini", { GEMINI_API_KEY: "k", AI_TEXT_MODEL: "gemini-x" })).toMatchObject({ apiKey: "k", model: "gemini-x", missing: [] });
+    const gemini = resolvePreset("gemini", {});
+    expect(gemini).toMatchObject({ baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-flash-latest", missing: ["GEMINI_API_KEY"] });
+    expect(gemini.fallbackModels.length).toBeGreaterThan(0);
+    // An explicit model disables the built-in fallbacks unless fallbacks are also configured.
+    expect(resolvePreset("gemini", { GEMINI_API_KEY: "k", AI_TEXT_MODEL: "gemini-x" })).toMatchObject({ apiKey: "k", model: "gemini-x", fallbackModels: [], missing: [] });
+    expect(resolvePreset("gemini", { AI_TEXT_MODEL: "a", AI_TEXT_FALLBACK_MODELS: "b, a ,c" }).fallbackModels).toEqual(["b", "c"]);
   });
   it("lets Ollama run without a key and custom endpoints override the URL", () => {
     expect(resolvePreset("ollama", {}).missing).toEqual([]);

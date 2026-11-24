@@ -53,7 +53,10 @@ function describeIssues(error) {
     .join("\n");
 }
 
-export function createOpenAICompatibleTextProvider({ name, baseUrl, model: defaultModel, apiKey, missing = [], fetchImpl = fetch }) {
+/** Errors after which the next model in the fallback chain is tried. */
+const TRY_NEXT_MODEL = new Set(["AI_MODEL_UNAVAILABLE", "AI_PROVIDER_BUSY"]);
+
+export function createOpenAICompatibleTextProvider({ name, baseUrl, model: defaultModel, fallbackModels = [], apiKey, missing = [], fetchImpl = fetch }) {
   if (missing.length) {
     return {
       name,
@@ -79,8 +82,10 @@ export function createOpenAICompatibleTextProvider({ name, baseUrl, model: defau
     }
     if (res.ok) return res.json();
     const detail = (await res.text().catch(() => "")).slice(0, 300);
-    if (res.status === 401 || res.status === 403) throw new AppError("AI_PROVIDER_AUTH", "The AI provider rejected the server credentials.", 503);
+    // Gemini reports a bad key as HTTP 400 "Please pass a valid API key".
+    if (res.status === 401 || res.status === 403 || (res.status === 400 && /api[ _-]?key/i.test(detail))) throw new AppError("AI_PROVIDER_AUTH", "The AI provider rejected the server credentials.", 503);
     if (res.status === 429) throw new AppError("AI_PROVIDER_BUSY", "The free AI provider's rate limit was reached. Please wait a minute and try again.", 503);
+    if (res.status === 404 || res.status === 503) throw new AppError("AI_MODEL_UNAVAILABLE", "The AI model is busy or unavailable right now. Please try again shortly.", 503, { providerMessage: detail });
     if (res.status === 400 || res.status === 422) throw new AppError("AI_BAD_REQUEST", "The AI request was rejected.", 502, { providerMessage: detail });
     throw Errors.upstream("The AI provider returned an error.");
   }
@@ -88,7 +93,23 @@ export function createOpenAICompatibleTextProvider({ name, baseUrl, model: defau
   return {
     name,
     configured: true,
-    async generate({ system, prompt, schema, model = defaultModel, maxTokens = 8000 }) {
+    async generate(request) {
+      // Try the requested/default model, then each fallback model.
+      const chain = [...new Set([request.model ?? defaultModel, ...fallbackModels])];
+      let lastError;
+      for (const model of chain) {
+        try {
+          return await generateWithModel({ ...request, model });
+        } catch (error) {
+          if (!(error instanceof AppError && TRY_NEXT_MODEL.has(error.code))) throw error;
+          lastError = error;
+        }
+      }
+      throw lastError;
+    },
+  };
+
+  async function generateWithModel({ system, prompt, schema, model, maxTokens = 8000 }) {
       const jsonSchema = schema ? toJsonSchema(schema) : null;
       const memoryKey = `${baseUrl}|${model}`;
       let modeIndex = schema ? MODES.indexOf(modeMemory.get(memoryKey) ?? "json_schema") : 2;
@@ -148,6 +169,5 @@ export function createOpenAICompatibleTextProvider({ name, baseUrl, model: defau
         check = schema.safeParse(data);
       }
       return { text, data: check.success ? check.data : data, model: response.model ?? model, usage };
-    },
-  };
+  }
 }

@@ -86,6 +86,27 @@ describe("OpenAI-compatible free provider", () => {
     await expect(ask(provider())).rejects.toMatchObject({ code: "AI_OUTPUT_TRUNCATED" });
   });
 
+  it("moves to the next free model when one is retired, overloaded or rate-limited", async () => {
+    behaviour = (body) =>
+      body.model === "retired" ? { status: 404, json: { error: "no longer available" } }
+      : body.model === "busy" ? { status: 503, json: { error: "high demand" } }
+      : body.model === "limited" ? { status: 429, json: {} }
+      : completion(JSON.stringify(names));
+    const p = createOpenAICompatibleTextProvider({ name: "gemini", baseUrl, model: "retired", fallbackModels: ["busy", "limited", "works"], apiKey: "k" });
+    expect((await ask(p)).data).toEqual(names);
+    expect(requests.map((r) => r.body.model)).toEqual(["retired", "busy", "limited", "works"]);
+
+    behaviour = () => ({ status: 503, json: {} });
+    const allBusy = createOpenAICompatibleTextProvider({ name: "gemini", baseUrl, model: "a", fallbackModels: ["b"], apiKey: "k" });
+    await expect(ask(allBusy)).rejects.toMatchObject({ code: "AI_MODEL_UNAVAILABLE", status: 503 });
+  });
+
+  it("treats Gemini's 'valid API key' 400 as an authentication error", async () => {
+    behaviour = () => ({ status: 400, json: [{ error: { code: 400, message: "Please pass a valid API key" } }] });
+    await expect(ask(provider())).rejects.toMatchObject({ code: "AI_PROVIDER_AUTH" });
+    expect(requests).toHaveLength(1);
+  });
+
   it("reports SERVICE_NOT_CONFIGURED when the key is missing", async () => {
     const p = createOpenAICompatibleTextProvider({ name: "gemini", baseUrl, model: "m", missing: ["GEMINI_API_KEY"] });
     expect(p.configured).toBe(false);
