@@ -4,15 +4,57 @@
 |---|---|---|
 | 0 — Foundation | APPROVED | ☑ |
 | 1 — Business Launch Studio | APPROVED | ☑ |
-| 2 — Brand Identity Studio | **COMPLETE — awaiting approval** | ☐ |
-| 3 — Marketing Strategy Studio | NOT STARTED (blocked on Phase 2 approval) | ☐ |
-| 4–10 | NOT STARTED | ☐ |
+| 2 — Brand Identity Studio | APPROVED | ☑ |
+| 3 — Marketing Strategy Studio | **COMPLETE — awaiting approval** | ☐ |
+| 4 — Social Media Studio | NOT STARTED (blocked on Phase 3 approval) | ☐ |
+| 5–10 | NOT STARTED | ☐ |
 
-**Current phase:** 2 (Brand Identity Studio) · **Last updated:** 2026-11-24
+**Current phase:** 3 (Marketing Strategy Studio) · **Last updated:** 2026-11-24
 
 ---
 
-## Phase 2 — Brand Identity Studio
+## Phase 3 — Marketing Strategy Studio
+
+Plan and acceptance criteria: [phases/PHASE_3.md](./phases/PHASE_3.md)
+
+### Implemented and verified
+- 8 AI sections (personas, competitor analysis, channels, objectives & campaigns, budget, advertising, KPIs,
+  marketing strategy) on the shared studio engine; profile + brand context reused automatically.
+- App-computed budget (totals, shares, first-year, over-budget warning), accessible bar chart + table.
+- Versioned plan approval → `marketingPreferences` context; Markdown / CSV exports; printable plan.
+- New shared helpers: `studioRoutes(engine)` route factory, `src/lib/markdown.js` (Markdown + safe CSV).
+- Free-AI hardening found in live testing: 90 s per-model timeout, 200 s overall deadline, 10-minute
+  cooldown for models that are overloaded, rate-limited or hung, one delayed second pass over models that
+  were only overloaded, and a server log line per failed model attempt.
+
+### Tests (all passing)
+| Suite | Count |
+|---|---|
+| Unit | 89 (Phase 2: 81) |
+| Integration (MySQL + provider simulator) | 76 (Phase 2: 65) |
+| End-to-end (desktop + mobile) | 22 (Phase 2: 19) |
+`npm run lint`, `npm run build` pass; all Phase 0–2 suites pass.
+
+### Defects found and fixed
+- Budget tooltip only appeared for keyboard focus → shows on any focus/hover.
+- Phasing amounts displayed unformatted → formatted in the plan currency.
+- Free models could hang for minutes without falling back → per-attempt timeout + cooldown.
+- Vitest warned about duplicate React plugins → projects inherit the root config.
+
+### Known limitations
+- Free tiers have small daily quotas per model; after heavy use some models return 429 until the quota resets
+  and the app falls back to other free models (slower). Heavy production use will need a paid tier or more providers.
+- Competitor analysis uses model knowledge only (labelled; verify before relying on it).
+- No ad-platform or analytics connections yet (Phases 8–9).
+
+### Handover to Phase 4 (Social Media Studio)
+- AI already receives `marketingPreferences` (channels, personas, objectives, core message, pillars) with the
+  profile and brand context — Phase 4 content should be generated from these, not re-asked.
+- Use `createStudioEngine` + `studioRoutes` + `StudioShell`/`SectionPanel`.
+
+---
+
+## Phase 2 — Brand Identity Studio (APPROVED)
 
 Plan and acceptance criteria: [phases/PHASE_2.md](./phases/PHASE_2.md). Free-only approach approved by the owner.
 

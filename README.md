@@ -6,7 +6,7 @@ An AI-powered business launch, branding, marketing, design and growth platform.
 Users describe their business once; Brand AI reuses that **approved business
 context** across every studio.
 
-> **Status:** Phase 2 (Brand Identity Studio) complete and awaiting approval.
+> **Status:** Phase 3 (Marketing Strategy Studio) complete and awaiting approval.
 > See [docs/PHASE_STATUS.md](docs/PHASE_STATUS.md).
 
 ## Available today
@@ -18,6 +18,9 @@ context** across every studio.
 - **Brand Identity Studio** (`/brand`): personality, voice, taglines, colour palettes (with contrast checks),
   typography, vector logos (4 layouts × 3 themes, editable, SVG/PNG download) and guidelines → an approved,
   versioned brand identity reused by every studio. Brand hub with asset library at `/businesses/:id/brand`.
+- **Marketing Strategy Studio** (`/strategy`): personas, competitor analysis, channels, objectives, budget
+  (computed totals + chart), advertising, KPIs and the full strategy → an approved, versioned marketing plan
+  with Markdown/CSV exports and a printable view at `/businesses/:id/marketing`.
 
 **AI is free by default.** Brand AI uses Google Gemini's free tier (`AI_TEXT_PROVIDER=gemini`). Get a free
 key at https://aistudio.google.com/apikey and set `GEMINI_API_KEY`. Other free options: Groq, OpenRouter free

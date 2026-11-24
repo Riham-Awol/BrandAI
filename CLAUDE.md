@@ -22,11 +22,12 @@ Read `docs/PHASE_STATUS.md` first; never start a phase without explicit approval
 - Files go through `src/server/storage/*` (cloud storage, magic-byte validation). Never persist to the local filesystem.
 - Errors: throw `Errors.*`/`AppError`; responses use the `{ ok, data | error }` envelope.
 - Session reads must be inside `<Suspense>` (cacheComponents is on). Use `getCurrentUser()` / `requireUser()`.
-- New studios: build on `createStudioEngine` (`src/server/studio/engine.js`) and `src/components/studio/*`; publish approved studio outputs to context with `publishApprovedSections`.
+- New studios: build on `createStudioEngine` (`src/server/studio/engine.js`), `studioRoutes(engine)` for route files, and `src/components/studio/*`; publish approved studio outputs to context with `publishApprovedSections`.
 - Generated SVG must be built from validated data only (see `src/server/brand/logo-renderer.js`); never embed user markup.
 - Phase modules live in `src/modules/<key>/`, depend on `src/server/*`, never the reverse. Follow `src/modules/launch` (schemas → sections → prompts → service → mock-fixtures → components).
 - Studio outputs: store in `projects`/`project_outputs` (append-only versions); render/edit with `src/components/structured/*`.
 - Register a mock fixture for every new AI task so e2e can run with `AI_TEXT_PROVIDER=mock`; fixtures must pass their schema (unit test).
+- Numbers the business relies on (totals, shares) are computed in code, never trusted from AI output. Charts follow the dataviz skill (validated colour tokens, table view).
 - UI uses semantic design tokens, includes loading/empty/error states, works at 390px and in dark mode.
 
 ## Each feature ships with

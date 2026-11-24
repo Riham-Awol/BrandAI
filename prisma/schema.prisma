@@ -47,6 +47,8 @@ model User {
   brandIdentitiesCreated  BrandIdentity[]          @relation("BrandIdentityCreatedBy")
   brandIdentitiesApproved BrandIdentity[]          @relation("BrandIdentityApprovedBy")
   brandAssets             BrandAsset[]
+  marketingPlansCreated   MarketingPlan[]          @relation("MarketingPlanCreatedBy")
+  marketingPlansApproved  MarketingPlan[]          @relation("MarketingPlanApprovedBy")
 
   @@index([deletedAt])
   @@map("users")
@@ -105,6 +107,7 @@ model Workspace {
   projects        Project[]
   brandIdentities BrandIdentity[]
   brandAssets     BrandAsset[]
+  marketingPlans  MarketingPlan[]
 
   @@index([ownerId])
   @@index([deletedAt])
@@ -174,6 +177,7 @@ model Business {
   projects        Project[]
   brandIdentities BrandIdentity[]
   brandAssets     BrandAsset[]
+  marketingPlans  MarketingPlan[]
   products        BusinessProduct[]
   services        BusinessService[]
   locations       BusinessLocation[]
@@ -409,6 +413,7 @@ model RateLimitBucket {
 enum ProjectType {
   LAUNCH_STUDIO
   BRAND_STUDIO
+  STRATEGY_STUDIO
 }
 
 enum ProjectStatus {
@@ -437,6 +442,7 @@ model Project {
   createdBy       User            @relation("ProjectCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   outputs         ProjectOutput[]
   brandIdentities BrandIdentity[]
+  marketingPlans  MarketingPlan[]
 
   @@index([workspaceId, deletedAt])
   @@index([businessId, type])
@@ -678,4 +684,39 @@ model StorageObject {
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@map("storage_objects")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Phase 3 — Approved marketing plans
+// ─────────────────────────────────────────────────────────────
+
+enum MarketingPlanStatus {
+  APPROVED
+  SUPERSEDED
+}
+
+// Immutable snapshot of an approved marketing strategy (personas, channels,
+// objectives, budget, advertising, KPIs, strategy). Newest APPROVED is current.
+model MarketingPlan {
+  id           String              @id @default(uuid()) @db.Char(36)
+  workspaceId  String              @map("workspace_id") @db.Char(36)
+  businessId   String              @map("business_id") @db.Char(36)
+  projectId    String?             @map("project_id") @db.Char(36)
+  version      Int
+  status       MarketingPlanStatus @default(APPROVED)
+  data         Json
+  createdById  String              @map("created_by_id") @db.Char(36)
+  approvedById String              @map("approved_by_id") @db.Char(36)
+  approvedAt   DateTime            @default(now()) @map("approved_at")
+  createdAt    DateTime            @default(now()) @map("created_at")
+
+  workspace  Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  project    Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdBy  User      @relation("MarketingPlanCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  approvedBy User      @relation("MarketingPlanApprovedBy", fields: [approvedById], references: [id], onDelete: Restrict)
+
+  @@unique([businessId, version])
+  @@index([businessId, status])
+  @@map("marketing_plans")
 }

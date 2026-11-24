@@ -71,6 +71,9 @@ buildInput, aiOptions, postProcess, validateState })` provides projects, scoped 
 generation/edits, acceptance, per-version state and audit for every studio. UI counterparts:
 `src/components/studio/studio-shell.jsx` and `section-panel.jsx`.
 
+Route handlers for a new studio come from `studioRoutes(engine)` (`src/server/studio/routes.js`); each route
+file just re-exports the needed handler.
+
 ## Brand rendering (Phase 2)
 ```
 AI (structured logo spec) ──► normalizeConcept() ──► renderLogoSvg()

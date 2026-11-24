@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AppError, Errors } from "../../errors.js";
+import { logger } from "../../logger.js";
 
 /**
  * Text provider for any OpenAI-compatible Chat Completions endpoint
@@ -15,7 +16,17 @@ import { AppError, Errors } from "../../errors.js";
  */
 const MODES = ["json_schema", "json_object", "prompt"];
 const modeMemory = new Map();
-const TIMEOUT_MS = 180_000;
+// Per-model attempt limit: a hung free model is abandoned for the next one.
+const ATTEMPT_TIMEOUT_MS = 90_000;
+// Stop starting new attempts after this, so requests finish within the route's 300 s limit.
+const OVERALL_DEADLINE_MS = 200_000;
+// Models that were overloaded, rate-limited or timed out are skipped for a while.
+const COOLDOWN_MS = 10 * 60_000;
+const cooldowns = new Map();
+
+export function _resetCooldownsForTests() {
+  cooldowns.clear();
+}
 
 export function toJsonSchema(schema) {
   const json = z.toJSONSchema(schema);
@@ -54,9 +65,12 @@ function describeIssues(error) {
 }
 
 /** Errors after which the next model in the fallback chain is tried. */
-const TRY_NEXT_MODEL = new Set(["AI_MODEL_UNAVAILABLE", "AI_PROVIDER_BUSY"]);
+const TRY_NEXT_MODEL = new Set(["AI_MODEL_UNAVAILABLE", "AI_PROVIDER_BUSY", "AI_MODEL_TIMEOUT"]);
 
-export function createOpenAICompatibleTextProvider({ name, baseUrl, model: defaultModel, fallbackModels = [], apiKey, missing = [], fetchImpl = fetch }) {
+export function createOpenAICompatibleTextProvider({
+  name, baseUrl, model: defaultModel, fallbackModels = [], apiKey, missing = [], fetchImpl = fetch,
+  attemptTimeoutMs = ATTEMPT_TIMEOUT_MS, deadlineMs = OVERALL_DEADLINE_MS, cooldownMs = COOLDOWN_MS, retryDelayMs = 5_000,
+}) {
   if (missing.length) {
     return {
       name,
@@ -74,10 +88,10 @@ export function createOpenAICompatibleTextProvider({ name, baseUrl, model: defau
         method: "POST",
         headers: { "Content-Type": "application/json", ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}) },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(TIMEOUT_MS),
+        signal: AbortSignal.timeout(attemptTimeoutMs),
       });
     } catch (error) {
-      if (error?.name === "TimeoutError") throw Errors.upstream("The AI provider took too long to respond.");
+      if (error?.name === "TimeoutError") throw new AppError("AI_MODEL_TIMEOUT", "The AI provider took too long to respond. Please try again.", 504);
       throw Errors.upstream("Could not reach the AI provider.");
     }
     if (res.ok) return res.json();
@@ -94,15 +108,42 @@ export function createOpenAICompatibleTextProvider({ name, baseUrl, model: defau
     name,
     configured: true,
     async generate(request) {
-      // Try the requested/default model, then each fallback model.
-      const chain = [...new Set([request.model ?? defaultModel, ...fallbackModels])];
+      // Requested/default model first, then fallbacks; models cooling down go last.
+      const now = Date.now();
+      const all = [...new Set([request.model ?? defaultModel, ...fallbackModels])];
+      const isCooling = (m) => (cooldowns.get(`${baseUrl}|${m}`) ?? 0) > now;
+      const chain = [...all.filter((m) => !isCooling(m)), ...all.filter(isCooling)];
+      const started = Date.now();
       let lastError;
-      for (const model of chain) {
+      const overloaded = [];
+      const attempt = async (model) => {
+        const attemptStart = Date.now();
         try {
-          return await generateWithModel({ ...request, model });
+          return { result: await generateWithModel({ ...request, model }) };
         } catch (error) {
+          logger.warn("AI model attempt failed", { provider: name, model, code: error?.code, ms: Date.now() - attemptStart, detail: error?.details?.providerMessage?.slice(0, 160) });
           if (!(error instanceof AppError && TRY_NEXT_MODEL.has(error.code))) throw error;
+          cooldowns.set(`${baseUrl}|${model}`, Date.now() + cooldownMs);
+          if (error.code === "AI_MODEL_UNAVAILABLE") overloaded.push(model);
           lastError = error;
+          return null;
+        }
+      };
+      for (const model of chain) {
+        if (lastError && Date.now() - started > deadlineMs) break;
+        const outcome = await attempt(model);
+        if (outcome) return outcome.result;
+      }
+      // "High demand" spikes are usually brief: one more pass over overloaded models (not quota-limited ones).
+      if (overloaded.length && Date.now() - started + retryDelayMs < deadlineMs) {
+        await new Promise((r) => setTimeout(r, retryDelayMs));
+        for (const model of [...overloaded]) {
+          if (Date.now() - started > deadlineMs) break;
+          const outcome = await attempt(model);
+          if (outcome) {
+            cooldowns.delete(`${baseUrl}|${model}`);
+            return outcome.result;
+          }
         }
       }
       throw lastError;

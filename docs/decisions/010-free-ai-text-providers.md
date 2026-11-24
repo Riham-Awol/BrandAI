@@ -28,3 +28,8 @@ working through the provider-independent orchestrator (ADR 005).
 under load. The Gemini preset now defaults to the `gemini-flash-latest` alias with a fallback chain; the
 adapter moves to the next model on 404/503/429. Verified live: 10/10 generations across both studios.
 Note for sandboxed environments: Node's built-in fetch only uses an HTTPS proxy when `NODE_USE_ENV_PROXY=1`.
+
+**Update (Phase 3 live testing).** Free models can also hang for minutes and exhaust small per-model daily
+quotas (429). The adapter now abandons an attempt after 90 s, stops starting new attempts after 200 s, and puts
+models that timed out, were overloaded or rate-limited on a 10-minute cooldown (tried last). If every model
+was merely overloaded (503), it waits 5 s and makes one more pass over those models. Each failed attempt is logged.

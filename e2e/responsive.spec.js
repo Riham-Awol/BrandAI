@@ -42,3 +42,17 @@ test("mobile layout: brand studio palettes and logo variants fit the screen", as
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test("mobile layout: strategy budget chart and table fit the screen", async ({ page }) => {
+  await registerViaUi(page, newUser());
+  await page.goto("/strategy/new");
+  await page.getByLabel("Business name").fill("Mobile Strategy");
+  await page.getByLabel("Monthly budget").fill("500");
+  await page.getByRole("button", { name: "Start marketing strategy" }).click();
+  await expect(page).toHaveURL(/\/strategy\/[0-9a-f-]{36}$/);
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: /Budget/ }).click();
+  await page.getByRole("button", { name: "Generate", exact: true }).click();
+  await expect(page.getByText("Monthly budget by channel (GBP)")).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+});

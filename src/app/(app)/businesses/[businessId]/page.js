@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
-import { Palette } from "lucide-react";
+import { Palette, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
 import { requireUserOrRedirect } from "@/server/auth/session.js";
@@ -31,7 +31,12 @@ async function Business({ params }) {
         eyebrow="Business profile"
         title={data.profile.name}
         description="The single source of truth Brand AI uses for every studio."
-        actions={<Button variant="outline" asChild><Link href={`/businesses/${businessId}/brand`}><Palette /> Brand hub</Link></Button>}
+        actions={
+          <>
+            <Button variant="outline" asChild><Link href={`/businesses/${businessId}/brand`}><Palette /> Brand hub</Link></Button>
+            <Button variant="outline" asChild><Link href={`/businesses/${businessId}/marketing`}><Target /> Marketing plan</Link></Button>
+          </>
+        }
       />
       <BusinessProfileView workspaceId={active.id} businessId={businessId} initial={data} />
     </div>

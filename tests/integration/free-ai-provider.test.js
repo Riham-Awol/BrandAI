@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "@/server/db/prisma.js";
-import { createOpenAICompatibleTextProvider } from "@/server/ai/providers/openai-compatible.js";
+import { _resetCooldownsForTests, createOpenAICompatibleTextProvider } from "@/server/ai/providers/openai-compatible.js";
 import { setProviderOverrides } from "@/server/ai/providers/registry.js";
 import { generateText } from "@/server/ai/orchestrator.js";
 import { SECTION_SCHEMAS } from "@/modules/launch/schemas.js";
@@ -24,7 +24,9 @@ beforeAll(async () => {
     for await (const chunk of req) raw += chunk;
     const body = JSON.parse(raw);
     requests.push({ headers: req.headers, body, path: req.url });
-    const { status = 200, json } = behaviour(body, requests.length);
+    const { status = 200, json, delayMs = 0 } = behaviour(body, requests.length);
+    if (delayMs) await new Promise((r) => setTimeout(r, delayMs));
+    if (res.destroyed) return;
     res.writeHead(status, { "Content-Type": "application/json" });
     res.end(JSON.stringify(json));
   });
@@ -33,6 +35,7 @@ beforeAll(async () => {
 });
 afterAll(() => new Promise((r) => server.close(r)));
 afterEach(() => {
+  _resetCooldownsForTests();
   requests.length = 0;
   setProviderOverrides(null);
 });
@@ -97,8 +100,35 @@ describe("OpenAI-compatible free provider", () => {
     expect(requests.map((r) => r.body.model)).toEqual(["retired", "busy", "limited", "works"]);
 
     behaviour = () => ({ status: 503, json: {} });
-    const allBusy = createOpenAICompatibleTextProvider({ name: "gemini", baseUrl, model: "a", fallbackModels: ["b"], apiKey: "k" });
+    const allBusy = createOpenAICompatibleTextProvider({ name: "gemini", baseUrl, model: "a", fallbackModels: ["b"], apiKey: "k", retryDelayMs: 10 });
     await expect(ask(allBusy)).rejects.toMatchObject({ code: "AI_MODEL_UNAVAILABLE", status: 503 });
+  });
+
+  it("makes a second pass over overloaded models after a short wait, but not over quota-limited ones", async () => {
+    let busyUntil = 3;
+    behaviour = (body, n) => (body.model === "quota" ? { status: 429, json: {} } : n <= busyUntil ? { status: 503, json: {} } : completion(JSON.stringify(names)));
+    const p = createOpenAICompatibleTextProvider({ name: "gemini", baseUrl, model: "a", fallbackModels: ["quota", "b"], apiKey: "k", retryDelayMs: 20 });
+    expect((await ask(p)).data).toEqual(names);
+    expect(requests.map((r) => r.body.model)).toEqual(["a", "quota", "b", "a"]);
+  });
+
+  it("abandons a hung model after the attempt timeout and remembers it", async () => {
+    behaviour = (body) => (body.model === "slow" ? { delayMs: 1500, ...completion("{}") } : completion(JSON.stringify(names)));
+    const p = createOpenAICompatibleTextProvider({ name: "gemini", baseUrl, model: "slow", fallbackModels: ["fast"], apiKey: "k", attemptTimeoutMs: 300 });
+    const t = Date.now();
+    expect((await ask(p)).data).toEqual(names);
+    expect(Date.now() - t).toBeLessThan(1500);
+    requests.length = 0;
+    // The slow model is cooling down, so the next request goes straight to the fast one.
+    expect((await ask(p)).data).toEqual(names);
+    expect(requests.map((r) => r.body.model)).toEqual(["fast"]);
+  });
+
+  it("stops trying further models after the overall deadline", async () => {
+    behaviour = () => ({ delayMs: 400, ...completion("{}") });
+    const p = createOpenAICompatibleTextProvider({ name: "gemini", baseUrl, model: "a", fallbackModels: ["b", "c", "d"], apiKey: "k", attemptTimeoutMs: 150, deadlineMs: 200 });
+    await expect(ask(p)).rejects.toMatchObject({ code: "AI_MODEL_TIMEOUT", status: 504 });
+    expect(requests.length).toBeLessThan(4);
   });
 
   it("treats Gemini's 'valid API key' 400 as an authentication error", async () => {

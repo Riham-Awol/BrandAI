@@ -19,7 +19,7 @@ export default defineConfig({
   test: {
     projects: [
       {
-        ...shared,
+        // Inline projects extend this config (plugins, aliases) in Vitest 5.
         test: {
           name: "unit",
           environment: "node",
@@ -28,7 +28,6 @@ export default defineConfig({
         },
       },
       {
-        ...shared,
         test: {
           name: "integration",
           environment: "node",

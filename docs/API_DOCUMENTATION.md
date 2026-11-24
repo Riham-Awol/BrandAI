@@ -105,6 +105,20 @@ versions / accept work exactly like the Launch Studio endpoints.
 
 Variants: `horizontal`, `stacked`, `mark`, `wordmark`; themes: `color`, `mono`, `inverse`.
 
+### Marketing Strategy Studio (Phase 3)
+Base: `/workspaces/:workspaceId/strategy-projects`. Sections: `personas`, `competitor_analysis`, `channels`,
+`objectives`, `budget`, `advertising`, `kpis`, `strategy` (schemas: `src/modules/strategy/schemas.js`).
+Project / section / generate / versions / accept endpoints are identical to the other studios.
+
+| Method | Path | Permission | Body / notes |
+|---|---|---|---|
+| GET / POST | `/` | `business:read` / `business:update` | POST `{ businessId, primaryGoal, monthlyBudget?, currency, timeframeMonths (3/6/12), focusMarkets?, constraints? }` |
+| GET | `/:projectId/plan` | `business:read` | `{ draft: { complete, missing, data: { sections, budget (computed), settings } }, approved }` |
+| POST | `/:projectId/plan` | `context:approve` | approve → new plan version + `marketingPreferences` context; `409` lists missing sections |
+| GET | `/:projectId/export?format=markdown\|budget-csv\|kpis-csv` | `business:read` | file download |
+| GET | `/workspaces/:ws/businesses/:biz/marketing-plan` | `business:read` | `{ business, plan }` (approved or null) |
+| GET | `/workspaces/:ws/businesses/:biz/marketing-plan/export?format=…` | `business:read` | approved plan download; 404 if none |
+
 ### Brand hub & assets (Phase 2)
 | Method | Path | Permission | Notes |
 |---|---|---|---|
