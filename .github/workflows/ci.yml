@@ -30,7 +30,7 @@ jobs:
       APP_URL: http://localhost:3100
       APP_ENV: test
       EMAIL_PROVIDER: console
-      STORAGE_PROVIDER: none
+      STORAGE_PROVIDER: database
       AI_TEXT_PROVIDER: anthropic
     steps:
       - uses: actions/checkout@v4

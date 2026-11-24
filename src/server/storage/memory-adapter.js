@@ -8,12 +8,15 @@ export function createMemoryAdapter() {
     async put(key, body, { contentType }) {
       objects.set(key, { body: Buffer.from(body), contentType });
     },
+    async get(key) {
+      const o = objects.get(key);
+      return o ? { body: o.body, contentType: o.contentType } : null;
+    },
     async delete(key) {
       objects.delete(key);
     },
-    async signedUrl(key) {
-      if (!objects.has(key)) throw new Error("Object not found");
-      return `memory://${key}`;
+    async signedUrl() {
+      return null;
     },
   };
 }

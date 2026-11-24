@@ -55,6 +55,15 @@ function EditorField({ spec, label, path, value, root, onChange, errors }) {
       break;
     default: {
       const text = value ?? "";
+      if (/^#[0-9a-f]{6}$/i.test(text)) {
+        control = (
+          <div className="flex gap-2">
+            <input type="color" aria-label={`${label} picker`} value={text} onChange={(e) => set(e.target.value)} className="h-10 w-12 cursor-pointer rounded-lg border bg-card p-1" />
+            <Input {...a11y} value={text} onChange={(e) => set(e.target.value)} className="font-mono" />
+          </div>
+        );
+        break;
+      }
       control =
         text.length > 80 || spec.description?.length > 60 ? (
           <Textarea {...a11y} rows={Math.min(14, Math.max(3, Math.ceil(text.length / 90)))} value={text} onChange={(e) => set(e.target.value)} />

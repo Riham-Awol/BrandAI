@@ -4,10 +4,11 @@ import { recordAudit } from "../audit/service.js";
 import { requireWorkspaceAccess } from "../permissions/authorize.js";
 import { PERMISSIONS } from "../permissions/roles.js";
 import { findScopedBusiness } from "./service.js";
-import { saveContextDraft, getContextOverview } from "./context-service.js";
+import { saveContextDraft, getContextOverview, getApprovedSectionsExcept } from "./context-service.js";
 import { buildContextFromProfile } from "./profile-utils.js";
 
 const order = { orderBy: { sortOrder: "asc" } };
+const PROFILE_SECTIONS = ["basics", "offering", "audience", "goals", "competitors"];
 const strip = ({ id: _id, businessId: _b, createdAt: _c, updatedAt: _u, sortOrder: _s, ...rest }) =>
   Object.fromEntries(Object.entries(rest).map(([k, v]) => [k, v ?? undefined]));
 
@@ -101,7 +102,9 @@ export async function saveBusinessProfile(user, workspaceId, businessId, profile
   });
 
   const saved = await loadProfile(businessId);
-  const draft = await saveContextDraft(user, workspaceId, businessId, { data: buildContextFromProfile(saved), changeNote: "Updated from business profile" }, request);
+  // Sections owned by other studios (brand identity, voice…) are carried over unchanged.
+  const carried = await getApprovedSectionsExcept(businessId, PROFILE_SECTIONS);
+  const draft = await saveContextDraft(user, workspaceId, businessId, { data: { ...carried, ...buildContextFromProfile(saved) }, changeNote: "Updated from business profile" }, request);
   await recordAudit({ action: "business.profile_saved", actorId: user.id, workspaceId, entityType: "business", entityId: businessId, request });
   return { profile: saved, contextDraft: { id: draft.id, version: draft.version } };
 }

@@ -15,6 +15,10 @@ const nextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,
+  // Bundled font files are read at runtime for logo rendering and font serving.
+  outputFileTracingIncludes: {
+    "/api/**/*": ["./node_modules/@fontsource/*/files/*-latin-*-normal.woff"],
+  },
   serverExternalPackages: ["@prisma/client", "@prisma/adapter-mariadb", "mariadb", "bcryptjs"],
   turbopack: {
     rules: {

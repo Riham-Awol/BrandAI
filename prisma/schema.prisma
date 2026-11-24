@@ -31,19 +31,22 @@ model User {
   updatedAt        DateTime  @updatedAt @map("updated_at")
   deletedAt        DateTime? @map("deleted_at")
 
-  authTokens        AuthToken[]
-  memberships       WorkspaceMember[]
-  ownedWorkspaces   Workspace[]              @relation("WorkspaceOwner")
-  businessesCreated Business[]               @relation("BusinessCreatedBy")
-  contextVersions   BusinessContextVersion[] @relation("ContextCreatedBy")
-  contextApprovals  BusinessContextVersion[] @relation("ContextApprovedBy")
-  aiGenerations     AiGeneration[]
-  aiUsageRecords    AiUsageRecord[]
-  storedFiles       StoredFile[]
-  notifications     Notification[]
-  auditLogs         AuditLog[]
-  projectsCreated   Project[]                @relation("ProjectCreatedBy")
-  projectOutputs    ProjectOutput[]
+  authTokens              AuthToken[]
+  memberships             WorkspaceMember[]
+  ownedWorkspaces         Workspace[]              @relation("WorkspaceOwner")
+  businessesCreated       Business[]               @relation("BusinessCreatedBy")
+  contextVersions         BusinessContextVersion[] @relation("ContextCreatedBy")
+  contextApprovals        BusinessContextVersion[] @relation("ContextApprovedBy")
+  aiGenerations           AiGeneration[]
+  aiUsageRecords          AiUsageRecord[]
+  storedFiles             StoredFile[]
+  notifications           Notification[]
+  auditLogs               AuditLog[]
+  projectsCreated         Project[]                @relation("ProjectCreatedBy")
+  projectOutputs          ProjectOutput[]
+  brandIdentitiesCreated  BrandIdentity[]          @relation("BrandIdentityCreatedBy")
+  brandIdentitiesApproved BrandIdentity[]          @relation("BrandIdentityApprovedBy")
+  brandAssets             BrandAsset[]
 
   @@index([deletedAt])
   @@map("users")
@@ -90,16 +93,18 @@ model Workspace {
   updatedAt DateTime      @updatedAt @map("updated_at")
   deletedAt DateTime?     @map("deleted_at")
 
-  owner          User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  members        WorkspaceMember[]
-  businesses     Business[]
-  aiGenerations  AiGeneration[]
-  aiUsageRecords AiUsageRecord[]
-  usageLimits    UsageLimit[]
-  storedFiles    StoredFile[]
-  notifications  Notification[]
-  auditLogs      AuditLog[]
-  projects       Project[]
+  owner           User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  members         WorkspaceMember[]
+  businesses      Business[]
+  aiGenerations   AiGeneration[]
+  aiUsageRecords  AiUsageRecord[]
+  usageLimits     UsageLimit[]
+  storedFiles     StoredFile[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+  projects        Project[]
+  brandIdentities BrandIdentity[]
+  brandAssets     BrandAsset[]
 
   @@index([ownerId])
   @@index([deletedAt])
@@ -167,6 +172,8 @@ model Business {
   aiGenerations   AiGeneration[]
   storedFiles     StoredFile[]
   projects        Project[]
+  brandIdentities BrandIdentity[]
+  brandAssets     BrandAsset[]
   products        BusinessProduct[]
   services        BusinessService[]
   locations       BusinessLocation[]
@@ -330,9 +337,10 @@ model StoredFile {
   createdAt    DateTime  @default(now()) @map("created_at")
   deletedAt    DateTime? @map("deleted_at")
 
-  workspace  Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  business   Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
-  uploadedBy User      @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  business    Business?    @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  uploadedBy  User         @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+  brandAssets BrandAsset[]
 
   @@index([workspaceId, deletedAt])
   @@index([businessId])
@@ -400,6 +408,7 @@ model RateLimitBucket {
 
 enum ProjectType {
   LAUNCH_STUDIO
+  BRAND_STUDIO
 }
 
 enum ProjectStatus {
@@ -423,10 +432,11 @@ model Project {
   updatedAt   DateTime      @updatedAt @map("updated_at")
   deletedAt   DateTime?     @map("deleted_at")
 
-  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  business  Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  createdBy User            @relation("ProjectCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  outputs   ProjectOutput[]
+  workspace       Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  business        Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdBy       User            @relation("ProjectCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  outputs         ProjectOutput[]
+  brandIdentities BrandIdentity[]
 
   @@index([workspaceId, deletedAt])
   @@index([businessId, type])
@@ -587,4 +597,85 @@ model BusinessGoal {
 
   @@index([businessId, sortOrder])
   @@map("business_goals")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Phase 2 — Brand identity & brand assets
+// ─────────────────────────────────────────────────────────────
+
+enum BrandIdentityStatus {
+  APPROVED
+  SUPERSEDED
+}
+
+// Immutable snapshot of an approved brand identity (logo spec, palette,
+// typography, tagline, personality, voice, guidelines). The newest APPROVED
+// row is the business's current identity; older ones are kept as history.
+model BrandIdentity {
+  id           String              @id @default(uuid()) @db.Char(36)
+  workspaceId  String              @map("workspace_id") @db.Char(36)
+  businessId   String              @map("business_id") @db.Char(36)
+  projectId    String?             @map("project_id") @db.Char(36)
+  version      Int
+  status       BrandIdentityStatus @default(APPROVED)
+  data         Json
+  createdById  String              @map("created_by_id") @db.Char(36)
+  approvedById String              @map("approved_by_id") @db.Char(36)
+  approvedAt   DateTime            @default(now()) @map("approved_at")
+  createdAt    DateTime            @default(now()) @map("created_at")
+
+  workspace  Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  project    Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdBy  User      @relation("BrandIdentityCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  approvedBy User      @relation("BrandIdentityApprovedBy", fields: [approvedById], references: [id], onDelete: Restrict)
+
+  @@unique([businessId, version])
+  @@index([businessId, status])
+  @@map("brand_identities")
+}
+
+enum BrandAssetKind {
+  LOGO
+  ICON
+  IMAGE
+  DOCUMENT
+  OTHER
+}
+
+// Uploaded brand files (generated logo variants are rendered on demand from
+// the approved identity and are not stored here).
+model BrandAsset {
+  id           String         @id @default(uuid()) @db.Char(36)
+  workspaceId  String         @map("workspace_id") @db.Char(36)
+  businessId   String         @map("business_id") @db.Char(36)
+  storedFileId String         @map("stored_file_id") @db.Char(36)
+  kind         BrandAssetKind @default(OTHER)
+  name         String         @db.VarChar(160)
+  description  String?        @db.VarChar(1000)
+  createdById  String         @map("created_by_id") @db.Char(36)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  deletedAt    DateTime?      @map("deleted_at")
+
+  workspace  Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  business   Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  storedFile StoredFile @relation(fields: [storedFileId], references: [id], onDelete: Restrict)
+  createdBy  User       @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([businessId, deletedAt])
+  @@index([workspaceId])
+  @@map("brand_assets")
+}
+
+// Bytes for STORAGE_PROVIDER=database (free, zero-setup storage for small
+// files). Replaced by S3-compatible storage at scale.
+model StorageObject {
+  objectKey   String   @id @map("object_key") @db.VarChar(512)
+  contentType String   @map("content_type") @db.VarChar(120)
+  sizeBytes   Int      @map("size_bytes")
+  data        Bytes    @db.LongBlob
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("storage_objects")
 }

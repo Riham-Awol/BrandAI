@@ -79,3 +79,51 @@ export async function getApprovedContext(scope, businessId) {
   if (!approved) return null;
   return { versionId: approved.id, version: approved.version, data: pickApprovedSections(approved.data, approved.approvedSections) };
 }
+
+/**
+ * Publishes sections that were approved through their own studio workflow
+ * (e.g. the brand identity). Creates a new APPROVED context version that
+ * keeps every previously approved section and adds/replaces these ones.
+ * An open draft also receives the sections so a later approval keeps them.
+ */
+export async function publishApprovedSections(user, workspaceId, businessId, sectionsData, request) {
+  const scope = await requireWorkspaceAccess(user, workspaceId, PERMISSIONS.CONTEXT_APPROVE);
+  await findScopedBusiness(scope, businessId);
+  const keys = Object.keys(sectionsData);
+
+  const version = await prisma.$transaction(async (tx) => {
+    const approved = await tx.businessContextVersion.findFirst({ where: { businessId, status: "APPROVED" }, orderBy: { version: "desc" } });
+    const previous = approved ? pickApprovedSections(approved.data, approved.approvedSections) : {};
+    const last = await tx.businessContextVersion.findFirst({ where: { businessId }, orderBy: { version: "desc" }, select: { version: true } });
+    await tx.businessContextVersion.updateMany({ where: { businessId, status: "APPROVED" }, data: { status: "SUPERSEDED" } });
+    const created = await tx.businessContextVersion.create({
+      data: {
+        businessId,
+        version: (last?.version ?? 0) + 1,
+        status: "APPROVED",
+        data: { ...previous, ...sectionsData },
+        approvedSections: [...new Set([...Object.keys(previous), ...keys])],
+        changeNote: `Published: ${keys.join(", ")}`,
+        createdById: user.id,
+        approvedById: user.id,
+        approvedAt: new Date(),
+      },
+    });
+    const draft = await tx.businessContextVersion.findFirst({ where: { businessId, status: "DRAFT" }, orderBy: { version: "desc" } });
+    if (draft) await tx.businessContextVersion.update({ where: { id: draft.id }, data: { data: { ...draft.data, ...sectionsData } } });
+    return created;
+  });
+  await recordAudit({
+    action: AUDIT_ACTIONS.CONTEXT_APPROVED, actorId: user.id, workspaceId, entityType: "business_context_version", entityId: version.id,
+    metadata: { version: version.version, sections: keys, via: "publish" }, request,
+  });
+  return version;
+}
+
+/** Approved data for sections NOT in `excludeKeys` (used to carry sections into new drafts). */
+export async function getApprovedSectionsExcept(businessId, excludeKeys) {
+  const approved = await latestVersion(businessId, "APPROVED");
+  if (!approved) return {};
+  const data = pickApprovedSections(approved.data, approved.approvedSections);
+  return Object.fromEntries(Object.entries(data).filter(([k]) => !excludeKeys.includes(k)));
+}

@@ -3,15 +3,69 @@
 | Phase | Status | Approved |
 |---|---|---|
 | 0 — Foundation | APPROVED | ☑ |
-| 1 — Business Launch Studio | **COMPLETE — awaiting approval** | ☐ |
-| 2 — Brand Identity Studio | NOT STARTED (blocked on Phase 1 approval) | ☐ |
-| 3–10 | NOT STARTED | ☐ |
+| 1 — Business Launch Studio | APPROVED | ☑ |
+| 2 — Brand Identity Studio | **COMPLETE — awaiting approval** | ☐ |
+| 3 — Marketing Strategy Studio | NOT STARTED (blocked on Phase 2 approval) | ☐ |
+| 4–10 | NOT STARTED | ☐ |
 
-**Current phase:** 1 (Business Launch Studio) · **Last updated:** 2026-11-24
+**Current phase:** 2 (Brand Identity Studio) · **Last updated:** 2026-11-24
 
 ---
 
-## Phase 1 — Business Launch Studio
+## Phase 2 — Brand Identity Studio
+
+Plan and acceptance criteria: [phases/PHASE_2.md](./phases/PHASE_2.md). Free-only approach approved by the owner.
+
+### Implemented and verified
+- Seven AI sections: personality, voice, taglines, colour palettes, typography, logo concepts, guidelines —
+  versioned, editable, regenerable, acceptable; "pick one" selections for taglines/palettes/typography/logos.
+- **Vector logo system** (no image model, no extra cost): AI-designed structured specs rendered server-side
+  to SVG with text converted to outlines (15 bundled OFL fonts, 143 curated ISC-licensed Lucide icons,
+  7 shapes); 4 layouts × 3 themes; logo editor with live preview; SVG + PNG downloads.
+- Computed WCAG contrast ratings for every palette.
+- Self-hosted font serving for typography previews (no third-party font requests).
+- Versioned brand identity approval (admin/owner) → `brandIdentity` + `brandVoice` context sections;
+  profile saves now carry studio-owned sections forward.
+- Brand hub, brand asset library, printable guidelines.
+- New free `database` storage adapter (MySQL, ≤5 MB per file) — now the default `STORAGE_PROVIDER`;
+  authenticated file serving route for all adapters.
+- Refactor: Launch Studio and Brand Studio now share one studio engine (`src/server/studio/engine.js`)
+  and shared UI (`src/components/studio/*`). Phase 1 regression suites pass unchanged.
+- Prisma client is now created lazily (imports no longer need `DATABASE_URL`).
+
+### Tests (all passing)
+| Suite | Count |
+|---|---|
+| Unit | 76 (Phase 1: 58) |
+| Integration (MySQL) | 57 (Phase 1: 45) |
+| End-to-end (desktop + mobile) | 19 (Phase 1: 16) |
+`npm run lint`, `npm run build` pass.
+
+### Defects found and fixed during Phase 2
+- opentype.js 2.0 crashed shaping some fonts and corrupted combined-path serialization → glyphs are laid
+  out and serialized by our own code.
+- `npm run db:migrate -- --name x` passed `--name` to `prisma generate` and hung → generate moved to a `postdb:migrate` hook.
+- Logo tiles overflowed for stacked/mark variants → absolute-fit images.
+- `opentype.js` default import failed under Turbopack → named import.
+
+### Known limitations
+- **Real AI still not verified** (no Anthropic key in this environment); all AI paths verified with the mock provider.
+- Logos are typographic/icon-based compositions, not illustrations. Illustrative imagery would need an
+  image model (a free option such as Pollinations or Hugging Face can be added behind the existing image-provider boundary).
+- Wordmarks support Latin scripts only (bundled font subsets); unsupported characters fall back to Inter and the UI shows a warning.
+- Database storage is intended for small brand files (≤5 MB each); switch to S3-compatible storage (free tiers:
+  Supabase Storage, Backblaze B2) as usage grows — no code changes needed.
+- PDF guidelines use the browser's print dialog.
+- Streaming pages return HTTP 200 with the 404 UI for other workspaces' resources (APIs return real 404s).
+
+### Handover to Phase 3 (Marketing Strategy Studio)
+- Create the studio with `createStudioEngine` (`ProjectType.STRATEGY_STUDIO`), shared `StudioShell`/`SectionPanel`.
+- The AI already receives approved `basics/offering/audience/goals/competitors/brandIdentity/brandVoice` context.
+- Phase 3 adds `marketingPreferences` to context via `publishApprovedSections`.
+
+---
+
+## Phase 1 — Business Launch Studio (APPROVED)
 
 Plan and acceptance criteria: [phases/PHASE_1.md](./phases/PHASE_1.md)
 

@@ -1,5 +1,8 @@
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
+import { Palette } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
 import { requireUserOrRedirect } from "@/server/auth/session.js";
 import { getActiveWorkspace } from "@/server/workspaces/active.js";
@@ -24,7 +27,12 @@ async function Business({ params }) {
   const data = await loadOr404(() => getBusinessProfile(user, active?.id, businessId));
   return (
     <div className="space-y-8">
-      <PageHeader eyebrow="Business profile" title={data.profile.name} description="The single source of truth Brand AI uses for every studio." />
+      <PageHeader
+        eyebrow="Business profile"
+        title={data.profile.name}
+        description="The single source of truth Brand AI uses for every studio."
+        actions={<Button variant="outline" asChild><Link href={`/businesses/${businessId}/brand`}><Palette /> Brand hub</Link></Button>}
+      />
       <BusinessProfileView workspaceId={active.id} businessId={businessId} initial={data} />
     </div>
   );

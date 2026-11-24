@@ -84,6 +84,37 @@ Base: `/workspaces/:workspaceId/launch-projects`. Sections: `idea_analysis`, `na
 | GET | `/:projectId/profile-draft` | `business:read` | profile pre-filled from active outputs (not saved) + saved profile + context |
 | GET | `/:projectId/export` | `business:read` | `text/markdown` attachment (launch pack) |
 
+### Brand Identity Studio (Phase 2)
+Base: `/workspaces/:workspaceId/brand-projects`. Sections: `personality`, `voice`, `taglines`, `palettes`,
+`typography`, `logo_concepts`, `guidelines` (schemas: `src/modules/brand/schemas.js`). Generate / edit /
+versions / accept work exactly like the Launch Studio endpoints.
+
+| Method | Path | Permission | Body / notes |
+|---|---|---|---|
+| GET / POST | `/` | `business:read` / `business:update` | POST `{ businessId, styleKeywords[], colorPreferences?, avoid?, inspiration? }` |
+| GET / DELETE | `/:projectId` | `business:read` / `business:delete` | |
+| POST | `/:projectId/sections/:section/generate` | `ai:generate` | `{ feedback? }`; colours normalized; invalid colours → `502 AI_INVALID_OUTPUT` |
+| PUT | `/:projectId/sections/:section` | `business:update` | `{ content, state? }` → new version; invalid hex → 422 keyed by path |
+| PATCH | `/:projectId/sections/:section/state` | `business:update` | `{ outputId, state: { selected } }` for taglines/palettes/typography/logo_concepts |
+| GET | `/:projectId/sections/:section/versions/:outputId` | `business:read` | |
+| POST | `/:projectId/sections/:section/accept` | `business:update` | `{ outputId }` |
+| GET | `/:projectId/logo/:outputId/:index?variant&theme&height` | `business:read` | `image/svg+xml` (sandboxed CSP) |
+| POST | `/:projectId/logo-preview` | `business:read` | `{ concept, variant, theme }` → `{ svg, warnings }` |
+| GET | `/:projectId/identity` | `business:read` | `{ draft: { complete, missing, data }, approved }` |
+| POST | `/:projectId/identity` | `context:approve` | approve → new identity version + context publish; `409` lists missing sections |
+
+Variants: `horizontal`, `stacked`, `mark`, `wordmark`; themes: `color`, `mono`, `inverse`.
+
+### Brand hub & assets (Phase 2)
+| Method | Path | Permission | Notes |
+|---|---|---|---|
+| GET | `/workspaces/:ws/businesses/:biz/brand` | `business:read` | `{ business, identity }` (approved, or null) |
+| GET | `/workspaces/:ws/businesses/:biz/brand/logo?variant&theme&height&download=1` | `business:read` | approved logo SVG; 404 if none |
+| GET / POST | `/workspaces/:ws/businesses/:biz/brand-assets` | `business:read` / `files:upload` | POST multipart: `file`, `name`, `kind`, `description?`; PNG/JPEG/GIF/WebP/PDF; 5 MB with database storage |
+| DELETE | `/workspaces/:ws/businesses/:biz/brand-assets/:assetId` | `files:delete` | soft delete + bytes removed |
+| GET | `/workspaces/:ws/files/:fileId/content?download=1` | `workspace:read` | S3 → 302 to signed URL; database → bytes (sandboxed CSP) |
+| GET | `/fonts/:key/:weight` | public | bundled OFL fonts (`font/woff`, immutable cache) |
+
 Context sections: `basics`, `offering`, `audience`, `goals`, `competitors`,
 `brandIdentity`, `brandVoice`, `marketingPreferences`.
 

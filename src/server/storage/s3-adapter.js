@@ -18,6 +18,15 @@ export function createS3Adapter({ endpoint, region, bucket, accessKeyId, secretA
     async put(key, body, { contentType }) {
       await client.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType, ServerSideEncryption: endpoint ? undefined : "AES256" }));
     },
+    async get(key) {
+      try {
+        const res = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+        return { body: Buffer.from(await res.Body.transformToByteArray()), contentType: res.ContentType };
+      } catch (error) {
+        if (error?.name === "NoSuchKey") return null;
+        throw error;
+      }
+    },
     async delete(key) {
       await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
     },

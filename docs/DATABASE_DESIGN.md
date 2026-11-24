@@ -11,6 +11,7 @@ Schema: [`prisma/schema.prisma`](../prisma/schema.prisma) · Migrations: `prisma
 | Migration | Phase | Summary |
 |---|---|---|
 | `20261124114911_init_foundation` | 0 | Foundation tables below |
+| `20261124124604_phase2_brand_studio` | 2 | `ProjectType.BRAND_STUDIO`; `brand_identities`, `brand_assets`, `storage_objects` |
 | `20261124121713_phase1_launch_studio` | 1 | `projects`, `project_outputs`, business profile tables; `businesses.value_proposition`, `businesses.business_model` |
 
 ## Entity relationships
@@ -58,6 +59,12 @@ businesses 1─* business_products | business_services | business_locations | bu
 | `competitors` *(P1)* | name, website, description, strengths, weaknesses | idx (`business_id`,`sort_order`) | cascade |
 | `business_goals` *(P1)* | title, description, timeframe, metric | idx (`business_id`,`sort_order`) | cascade |
 
+| `brand_identities` *(P2)* | Immutable approved identity snapshots (`data` JSON: logo spec, palette, typography, tagline, personality, voice, guidelines), `status` APPROVED/SUPERSEDED, `version`, approver | unique (`business_id`,`version`); idx (`business_id`,`status`) | cascade with business |
+| `brand_assets` *(P2)* | Uploaded brand files: `kind` (LOGO/ICON/IMAGE/DOCUMENT/OTHER), name, description → `stored_files` | idx (`business_id`,`deleted_at`) | soft delete (file bytes deleted) |
+| `storage_objects` *(P2)* | Bytes for `STORAGE_PROVIDER=database` (`LONGBLOB`, ≤5 MB enforced by the adapter) | PK `object_key` | deleted with the file |
+
+Generated logo files are **not stored**: they are rendered on demand from the approved identity's logo spec.
+
 Profile tables carry `business_id` only (no `workspace_id`): they are reached exclusively through an
 authorized, workspace-scoped business, so the workspace is not duplicated. At most one primary location
 and one primary audience are kept (enforced by the profile service).
@@ -74,7 +81,6 @@ SUPERSEDED. Generations reference the context version they used.
 ## Tables from the master spec deferred to their phase
 | Table | Phase | Reason |
 |---|---|---|
-| `brand_identities`, `brand_assets` | 2 | Brand Identity Studio (`brand_assets` will reference `stored_files`) |
 | `integrations` (encrypted credentials) | 8 | Social/email integrations |
 | `subscriptions` | 10 | Payment provider not yet selected |
 

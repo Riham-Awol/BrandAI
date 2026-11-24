@@ -25,3 +25,20 @@ test("mobile layout: launch studio steps scroll horizontally without page overfl
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test("mobile layout: brand studio palettes and logo variants fit the screen", async ({ page }) => {
+  await registerViaUi(page, newUser());
+  await page.goto("/brand/new");
+  await page.getByLabel("Business name").fill("Mobile Brand");
+  await page.getByRole("button", { name: "Start brand identity" }).click();
+  await expect(page).toHaveURL(/\/brand\/[0-9a-f-]{36}$/);
+  const nav = (name) => page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: new RegExp(name) });
+  for (const t of ["Personality", "Colours", "Type", "Logo"]) {
+    await nav(t).click();
+    await page.getByRole("button", { name: "Generate", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Regenerate" })).toBeVisible();
+  }
+  await expect(page.getByRole("heading", { name: "Variations of the selected logo" })).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+});

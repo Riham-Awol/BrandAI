@@ -65,6 +65,22 @@ Data flow for a section: idea input + active outputs of the sections it `uses` +
 context → `generateText()` (schema) → new `project_outputs` version → UI. The profile builder maps
 active outputs → profile tables → context draft → admin approval → reused by every later studio.
 
+## Shared studio engine (Phase 2)
+`src/server/studio/engine.js` — `createStudioEngine({ type, module, sections, schemas, buildInstructions,
+buildInput, aiOptions, postProcess, validateState })` provides projects, scoped access, versioned
+generation/edits, acceptance, per-version state and audit for every studio. UI counterparts:
+`src/components/studio/studio-shell.jsx` and `section-panel.jsx`.
+
+## Brand rendering (Phase 2)
+```
+AI (structured logo spec) ──► normalizeConcept() ──► renderLogoSvg()
+                                                     ├─ fonts.js: bundled @fontsource WOFF → opentype.js glyph outlines
+                                                     ├─ lucide icon geometry (curated list)
+                                                     └─ SVG: paths + shapes only; escaped <title>; served with sandbox CSP
+Browser: <img src=…svg> previews · PNG = canvas rasterization of the same SVG
+```
+Fonts for previews are served from `/api/v1/fonts/:key/:weight` and loaded with the FontFace API.
+
 ## Authentication
 - Auth.js v4, Credentials provider, JWT cookie (`httpOnly`, `SameSite=Lax`,
   `Secure` in production), 7-day max age.

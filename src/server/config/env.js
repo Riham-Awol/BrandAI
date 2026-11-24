@@ -25,7 +25,7 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: optionalString,
 
   // Storage
-  STORAGE_PROVIDER: z.enum(["s3", "memory", "none"]).default("none"),
+  STORAGE_PROVIDER: z.enum(["database", "s3", "memory", "none"]).default("database"),
   S3_ENDPOINT: optionalString,
   S3_REGION: z.preprocess(emptyToUndefined, z.string().default("auto")),
   S3_BUCKET: optionalString,

@@ -1,5 +1,7 @@
 import "server-only";
 import { getEnv } from "../config/env.js";
+import { prisma } from "../db/prisma.js";
+import { createDatabaseAdapter } from "./database-adapter.js";
 import { Errors } from "../errors.js";
 import { createMemoryAdapter } from "./memory-adapter.js";
 import { createS3Adapter } from "./s3-adapter.js";
@@ -23,6 +25,8 @@ export function getStorage() {
       secretAccessKey: env.S3_SECRET_ACCESS_KEY,
       forcePathStyle: env.S3_FORCE_PATH_STYLE === "true",
     });
+  } else if (env.STORAGE_PROVIDER === "database") {
+    adapter = createDatabaseAdapter(prisma);
   } else if (env.STORAGE_PROVIDER === "memory") {
     if (env.APP_ENV === "production") throw Errors.notConfigured("File storage");
     adapter = createMemoryAdapter();

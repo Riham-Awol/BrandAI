@@ -6,7 +6,7 @@ An AI-powered business launch, branding, marketing, design and growth platform.
 Users describe their business once; Brand AI reuses that **approved business
 context** across every studio.
 
-> **Status:** Phase 1 (Business Launch Studio) complete and awaiting approval.
+> **Status:** Phase 2 (Brand Identity Studio) complete and awaiting approval.
 > See [docs/PHASE_STATUS.md](docs/PHASE_STATUS.md).
 
 ## Available today
@@ -15,6 +15,9 @@ context** across every studio.
   competitors, business model, strategy, business plan, launch checklist — each editable, versioned and
   regenerable — then a structured **business profile** you approve for reuse across Brand AI.
 - Business profile page for existing businesses (`/businesses/:id`).
+- **Brand Identity Studio** (`/brand`): personality, voice, taglines, colour palettes (with contrast checks),
+  typography, vector logos (4 layouts × 3 themes, editable, SVG/PNG download) and guidelines → an approved,
+  versioned brand identity reused by every studio. Brand hub with asset library at `/businesses/:id/brand`.
 
 AI features need `ANTHROPIC_API_KEY`. Without it the studio explains that AI is not configured. To try
 the flows offline in development, set `AI_TEXT_PROVIDER=mock` and `AI_ALLOW_MOCK=true` — results are
@@ -99,8 +102,9 @@ Production startup refuses mock AI providers and the console email provider.
 ## Known limitations
 Phase-specific limitations are listed in [docs/PHASE_STATUS.md](docs/PHASE_STATUS.md).
 - Live AI output has not been verified yet (no API key in the build environment); AI flows are tested with the mock provider.
-- No external providers are connected: AI text (needs `ANTHROPIC_API_KEY`), AI images
-  (provider chosen in Phase 2), file storage (needs S3-compatible credentials), email (needs Resend).
+- External providers not connected: AI text (needs `ANTHROPIC_API_KEY`) and email (needs Resend).
+  File storage works out of the box with the free `database` adapter (≤5 MB per file).
+- Logos are typographic/icon compositions rendered as vectors; wordmarks support Latin scripts only.
 - Email verification, MFA, OAuth sign-in and "log out of all devices" UI are not implemented yet
   (the data model supports session revocation).
 - Team invitations and member management UI arrive with Phase 10 (roles are enforced already).
