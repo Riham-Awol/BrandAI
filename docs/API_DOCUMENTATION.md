@@ -119,6 +119,20 @@ Project / section / generate / versions / accept endpoints are identical to the 
 | GET | `/workspaces/:ws/businesses/:biz/marketing-plan` | `business:read` | `{ business, plan }` (approved or null) |
 | GET | `/workspaces/:ws/businesses/:biz/marketing-plan/export?format=…` | `business:read` | approved plan download; 404 if none |
 
+### Social Media Studio (Phase 4)
+Base: `/workspaces/:workspaceId/social-projects`. Sections: `pillars`, `calendar` (schemas:
+`src/modules/social/schemas.js`); project/section/generate/versions/accept endpoints as in other studios.
+
+| Method | Path | Permission | Body / notes |
+|---|---|---|---|
+| GET / POST | `/` | `business:read` / `business:update` | POST `{ businessId, month: "YYYY-MM", platforms: [INSTAGRAM\|FACEBOOK\|TIKTOK\|LINKEDIN], postsPerWeek (1-14), focus?, includePromotions }` |
+| GET | `/:projectId/posts` | `business:read` | posts with computed `checks` (captionLength, hashtagCount, durationSeconds, warnings) |
+| POST | `/:projectId/posts` | `business:update` (+ `ai:generate` when `generate: true`) | quick post `{ date, platform, format, title, pillar?, objective?, isPromotion, generate }` |
+| POST | `/:projectId/posts/from-calendar` | `business:update` | creates IDEA posts from the active calendar (idempotent) → `{ created, replaced \| alreadyCreated }`; 409 without a calendar |
+| POST | `/:projectId/posts/generate` | `ai:generate` | `{ postIds: uuid[1..6], feedback? }` → one AI call → `{ written, missing, isMock }` |
+| GET / PATCH / DELETE | `/:projectId/posts/:postId` | read / `business:update` | PATCH `{ title?, date?, status?, isPromotion?, content? }` (content → new revision; READY requires content; date must be in the plan month) |
+| GET | `/:projectId/export?format=csv\|markdown` | `business:read` | file download |
+
 ### Brand hub & assets (Phase 2)
 | Method | Path | Permission | Notes |
 |---|---|---|---|

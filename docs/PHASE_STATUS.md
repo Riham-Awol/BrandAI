@@ -5,15 +5,57 @@
 | 0 — Foundation | APPROVED | ☑ |
 | 1 — Business Launch Studio | APPROVED | ☑ |
 | 2 — Brand Identity Studio | APPROVED | ☑ |
-| 3 — Marketing Strategy Studio | **COMPLETE — awaiting approval** | ☐ |
-| 4 — Social Media Studio | NOT STARTED (blocked on Phase 3 approval) | ☐ |
-| 5–10 | NOT STARTED | ☐ |
+| 3 — Marketing Strategy Studio | APPROVED | ☑ |
+| 4 — Social Media Studio | **COMPLETE — awaiting approval** | ☐ |
+| 5 — Creative Design Studio | NOT STARTED (blocked on Phase 4 approval) | ☐ |
+| 6–10 | NOT STARTED | ☐ |
 
-**Current phase:** 3 (Marketing Strategy Studio) · **Last updated:** 2026-11-24
+**Current phase:** 4 (Social Media Studio) · **Last updated:** 2026-11-24
+
+**Open follow-up (owner, 2026-11-24):** add Groq as a second free AI provider (cross-provider fallback) and
+re-verify the remaining Phase 3 sections live.
 
 ---
 
-## Phase 3 — Marketing Strategy Studio
+## Phase 4 — Social Media Studio
+
+Plan and acceptance criteria: [phases/PHASE_4.md](./phases/PHASE_4.md)
+
+### Implemented and verified
+- Monthly plan → social strategy (pillars, platform plans, hashtag sets) → content calendar (month grid /
+  mobile agenda) → posts board (batch writing, filters, quick "Add a post" tool) → post editor (preview,
+  computed checks, copy, status, rewrite, history/restore) → CSV/Markdown export.
+- Calendar validated in code (month length, selected platforms, supported formats, promotions switch).
+- Posts written in batches of up to 6 per AI call to conserve free-tier quota; missing items reported, never invented.
+- Engine change: section post-processing receives the project (and edits now authorize before validating).
+
+### Tests (all passing)
+| Suite | Count |
+|---|---|
+| Unit | 97 (Phase 3: 89) |
+| Integration (MySQL + provider simulator) | 84 (Phase 3: 76) |
+| End-to-end (desktop + mobile) | 25 (Phase 3: 22) |
+`npm run lint`, `npm run build` pass; all Phase 0–3 suites pass.
+
+### Defects found and fixed
+- React lint (setState inside effects) in the posts board/editor → fetches inlined with cancellation.
+- Caption fields rendered as single-line inputs → prose fields always multi-line in the structured editor.
+
+### Known limitations
+- No publishing or scheduling to the platforms yet (Phase 8 adds integrations, approvals and automation).
+- Platform limits are configured values (2026-11) and should be reviewed when platforms change them.
+- Posts are text and direction only; images/designs come with Phase 5.
+- Free AI capacity: see Phase 3 notes; batch writing reduces calls.
+
+### Handover to Phase 5 (Creative Design Studio)
+- Each post has `visualIdea`, `altText`, `format` and slide content — Phase 5 designs can be generated
+  directly from posts ("design this post").
+- Reuse the vector rendering approach from Phase 2 (structured specs → SVG) and approved brand
+  colours/fonts/logo from `brand_identities`.
+
+---
+
+## Phase 3 — Marketing Strategy Studio (APPROVED)
 
 Plan and acceptance criteria: [phases/PHASE_3.md](./phases/PHASE_3.md)
 

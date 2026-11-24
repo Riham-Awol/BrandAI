@@ -64,8 +64,10 @@ function EditorField({ spec, label, path, value, root, onChange, errors }) {
         );
         break;
       }
+      // Prose fields are always multi-line; short values stay single-line inputs.
+      const prose = /(caption|text|voiceover|description|summary|body|bio|message|rationale)$/i.test(String(path.at(-1)));
       control =
-        text.length > 80 || spec.description?.length > 60 ? (
+        prose || text.length > 80 || spec.description?.length > 60 ? (
           <Textarea {...a11y} rows={Math.min(14, Math.max(3, Math.ceil(text.length / 90)))} value={text} onChange={(e) => set(e.target.value)} />
         ) : (
           <Input {...a11y} value={text} onChange={(e) => set(e.target.value)} />

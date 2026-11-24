@@ -64,10 +64,10 @@ export function createStudioEngine(config) {
     }
   }
 
-  function processContent(section, content) {
+  function processContent(section, content, project) {
     const parsed = schemas[section].safeParse(content);
     if (!parsed.success) throw Errors.validation(flattenZodError(parsed.error));
-    return postProcess ? postProcess(section, parsed.data) : parsed.data;
+    return postProcess ? postProcess(section, parsed.data, { project }) : parsed.data;
   }
 
   function checkState(section, state, content) {
@@ -156,7 +156,7 @@ export function createStudioEngine(config) {
 
     let content;
     try {
-      content = postProcess ? postProcess(section, result.data) : result.data;
+      content = postProcess ? postProcess(section, result.data, { project }) : result.data;
     } catch (error) {
       if (error instanceof AppError && error.code === "VALIDATION_ERROR") {
         throw new AppError("AI_INVALID_OUTPUT", "The AI returned an unexpected format. Please try again.", 502);
@@ -175,10 +175,10 @@ export function createStudioEngine(config) {
 
   async function editSection(user, workspaceId, projectId, section, content, request, { state } = {}) {
     assertSection(section);
-    const processed = processContent(section, content);
-    const checkedState = checkState(section, state, processed);
     const scope = await requireWorkspaceAccess(user, workspaceId, PERMISSIONS.BUSINESS_UPDATE);
     const project = await findScopedProject(scope, projectId);
+    const processed = processContent(section, content, project);
+    const checkedState = checkState(section, state, processed);
     const output = await createVersion({ projectId: project.id, section, source: "EDIT", content: processed, state: checkedState ?? undefined, createdById: user.id });
     await recordAudit({ action: audit("section_edited"), actorId: user.id, workspaceId, entityType: "project_output", entityId: output.id, metadata: { section, version: output.version }, request });
     return toVersion(output);

@@ -56,3 +56,22 @@ test("mobile layout: strategy budget chart and table fit the screen", async ({ p
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test("mobile layout: social calendar list and post editor fit the screen", async ({ page }) => {
+  await registerViaUi(page, newUser());
+  await page.goto("/social/new");
+  await page.getByLabel("Business name").fill("Mobile Social");
+  await page.getByLabel("Month", { exact: true }).fill("2027-02");
+  await page.getByRole("button", { name: "Start social plan" }).click();
+  await expect(page).toHaveURL(/\/social\/[0-9a-f-]{36}$/);
+  const nav = (name) => page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: new RegExp(name) });
+  await nav("Calendar").click();
+  await page.getByRole("button", { name: "Generate", exact: true }).click();
+  await expect(page.getByText("Weekend loaf deal").filter({ visible: true })).toBeVisible();
+  await nav("Posts").click();
+  await page.getByRole("button", { name: "Add calendar ideas" }).first().click();
+  await page.getByRole("button", { name: /Dough at dawn/ }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+});

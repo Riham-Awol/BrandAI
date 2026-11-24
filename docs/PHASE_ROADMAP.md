@@ -9,8 +9,8 @@ the previous one passes its acceptance criteria and is approved (see
 | 0 ✅ | Foundation (initialization) | Auth, workspaces, isolation, DB, AI/storage abstractions, design system, tests | — |
 | 1 ✅ | AI Business Launch Studio (`launch`) | Structured business profile + launch plan | 0 |
 | 2 ✅ | AI Brand Identity Studio (`brand`) | Approved, reusable brand identity | 1 (business context) |
-| 3 🟡 | AI Marketing Strategy Studio (`strategy`) | Complete marketing strategy | 1, 2 |
-| 4 | AI Social Media Studio (`social`) | Ready-to-use social content | 2, 3 |
+| 3 ✅ | AI Marketing Strategy Studio (`strategy`) | Complete marketing strategy | 1, 2 |
+| 4 🟡 | AI Social Media Studio (`social`) | Ready-to-use social content | 2, 3 |
 | 5 | AI Creative Design Studio (`design`) | Brand-consistent marketing designs | 2 (brand assets), storage |
 | 6 | AI Website Builder (`website`) | Published business website (structured page configs, no executed AI code) | 1, 2, 5 |
 | 7 | Stationery & Merchandise Studio (`stationery`) | Branded business materials | 2, 5 |

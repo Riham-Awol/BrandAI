@@ -11,6 +11,7 @@ Schema: [`prisma/schema.prisma`](../prisma/schema.prisma) · Migrations: `prisma
 | Migration | Phase | Summary |
 |---|---|---|
 | `20261124114911_init_foundation` | 0 | Foundation tables below |
+| `20261124163027_phase4_social_studio` | 4 | `ProjectType.SOCIAL_STUDIO`; `social_posts`, `social_post_revisions` |
 | `20261124134716_phase3_strategy_studio` | 3 | `ProjectType.STRATEGY_STUDIO`; `marketing_plans` |
 | `20261124124604_phase2_brand_studio` | 2 | `ProjectType.BRAND_STUDIO`; `brand_identities`, `brand_assets`, `storage_objects` |
 | `20261124121713_phase1_launch_studio` | 1 | `projects`, `project_outputs`, business profile tables; `businesses.value_proposition`, `businesses.business_model` |
@@ -65,6 +66,9 @@ businesses 1─* business_products | business_services | business_locations | bu
 | `storage_objects` *(P2)* | Bytes for `STORAGE_PROVIDER=database` (`LONGBLOB`, ≤5 MB enforced by the adapter) | PK `object_key` | deleted with the file |
 
 | `marketing_plans` *(P3)* | Immutable approved marketing plans (`data` JSON: settings, all section contents, computed budget), `status` APPROVED/SUPERSEDED, `version`, approver | unique (`business_id`,`version`); idx (`business_id`,`status`) | cascade with business |
+
+| `social_posts` *(P4)* | Planned/written post: `scheduled_date` (DATE), `platform`, `format`, pillar, title, objective, `is_promotion`, `status` IDEA/DRAFT/READY, current `content` JSON, `version`, `is_mock`, source `calendar_output_id` | idx (`project_id`,`scheduled_date`), (`workspace_id`,`deleted_at`), `business_id` | soft delete |
+| `social_post_revisions` *(P4)* | Every AI write or user edit of a post (`version`, `source` AI/EDIT, `content`, feedback, generation link) | unique (`post_id`,`version`) | cascade with post |
 
 Generated logo files are **not stored**: they are rendered on demand from the approved identity's logo spec.
 

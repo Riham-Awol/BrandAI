@@ -414,6 +414,7 @@ enum ProjectType {
   LAUNCH_STUDIO
   BRAND_STUDIO
   STRATEGY_STUDIO
+  SOCIAL_STUDIO
 }
 
 enum ProjectStatus {
@@ -443,6 +444,7 @@ model Project {
   outputs         ProjectOutput[]
   brandIdentities BrandIdentity[]
   marketingPlans  MarketingPlan[]
+  socialPosts     SocialPost[]
 
   @@index([workspaceId, deletedAt])
   @@index([businessId, type])
@@ -719,4 +721,84 @@ model MarketingPlan {
   @@unique([businessId, version])
   @@index([businessId, status])
   @@map("marketing_plans")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Phase 4 — Social media posts
+// ─────────────────────────────────────────────────────────────
+
+enum SocialPlatform {
+  INSTAGRAM
+  FACEBOOK
+  TIKTOK
+  LINKEDIN
+}
+
+enum SocialFormat {
+  POST
+  CAROUSEL
+  STORY
+  SHORT_VIDEO
+}
+
+enum SocialPostStatus {
+  IDEA
+  DRAFT
+  READY
+}
+
+// A planned or written social post. `content` holds the current text
+// (caption, hashtags, slides, frames, script, promotion…); every change is
+// kept in social_post_revisions.
+model SocialPost {
+  id               String           @id @default(uuid()) @db.Char(36)
+  workspaceId      String           @map("workspace_id") @db.Char(36)
+  businessId       String           @map("business_id") @db.Char(36)
+  projectId        String           @map("project_id") @db.Char(36)
+  calendarOutputId String?          @map("calendar_output_id") @db.Char(36)
+  scheduledDate    DateTime         @map("scheduled_date") @db.Date
+  platform         SocialPlatform
+  format           SocialFormat
+  pillar           String?          @db.VarChar(120)
+  title            String           @db.VarChar(200)
+  objective        String?          @db.VarChar(500)
+  isPromotion      Boolean          @default(false) @map("is_promotion")
+  status           SocialPostStatus @default(IDEA)
+  content          Json?
+  version          Int              @default(0)
+  isMock           Boolean          @default(false) @map("is_mock")
+  createdById      String           @map("created_by_id") @db.Char(36)
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+  deletedAt        DateTime?        @map("deleted_at")
+
+  project   Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  revisions SocialPostRevision[]
+
+  @@index([projectId, scheduledDate])
+  @@index([workspaceId, deletedAt])
+  @@index([businessId])
+  @@map("social_posts")
+}
+
+enum SocialRevisionSource {
+  AI
+  EDIT
+}
+
+model SocialPostRevision {
+  id           String               @id @default(uuid()) @db.Char(36)
+  postId       String               @map("post_id") @db.Char(36)
+  version      Int
+  source       SocialRevisionSource
+  content      Json
+  feedback     String?              @db.VarChar(1000)
+  generationId String?              @map("generation_id") @db.Char(36)
+  createdById  String               @map("created_by_id") @db.Char(36)
+  createdAt    DateTime             @default(now()) @map("created_at")
+
+  post SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, version])
+  @@map("social_post_revisions")
 }
