@@ -1,6 +1,7 @@
 import { Logo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { MobileNav } from "./mobile-nav";
+import { NotificationsBell } from "./notifications-bell";
 import { SidebarNav } from "./sidebar-nav";
 import { UserMenu } from "./user-menu";
 import { WorkspaceSwitcher } from "./workspace-switcher";
@@ -21,6 +22,7 @@ export function AppShell({ user, workspaces, activeWorkspace, children }) {
           <MobileNav switcher={switcher} />
           <Logo href="/dashboard" compact className="lg:hidden" />
           <div className="ml-auto flex items-center gap-1.5">
+            <NotificationsBell />
             <ThemeToggle />
             <UserMenu user={user} />
           </div>

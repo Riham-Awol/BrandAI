@@ -6,7 +6,7 @@ An AI-powered business launch, branding, marketing, design and growth platform.
 Users describe their business once; Brand AI reuses that **approved business
 context** across every studio.
 
-> **Status:** Phase 7 (Stationery & Merchandise) complete and awaiting approval.
+> **Status:** Phase 8 (Calendar & Automation) complete and awaiting approval.
 > See [docs/PHASE_STATUS.md](docs/PHASE_STATUS.md).
 
 ## Available today
@@ -34,6 +34,10 @@ context** across every studio.
 - **Stationery & Merchandise** (`/stationery`): print-ready business cards (with bleed) and letterheads; T-shirts,
   uniforms, tote bags and mugs with mockups and real-size print artwork; product labels and packaging dielines;
   numbered invoices and quotations with totals calculated in code; and a printable company profile brochure.
+- **Calendar & Automation** (`/automation`): one marketing calendar, a scheduling queue with approvals, email
+  campaigns to a consent-based audience, reminders, preset automation rules and a full history — under three
+  modes (draft only, approval required, authorized automation with limits). Channels: signed webhooks (Zapier,
+  Make, n8n), Telegram and Facebook Pages. Set `CRON_SECRET` and call `POST /api/v1/cron/run` on a schedule.
 
 **AI is free by default.** Brand AI uses Google Gemini's free tier (`AI_TEXT_PROVIDER=gemini`). Get a free
 key at https://aistudio.google.com/apikey and set `GEMINI_API_KEY`. Other free options: Groq, OpenRouter free

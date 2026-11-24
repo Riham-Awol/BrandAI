@@ -14,12 +14,12 @@ const providers = {
     logger.info("[email:console] Email not sent — development console provider", { to, subject, text });
     return { id: "console" };
   },
-  async resend({ to, subject, text, html }, env) {
+  async resend({ to, subject, text, html, headers }, env) {
     if (!env.RESEND_API_KEY) throw Errors.notConfigured("Email (Resend)");
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: env.EMAIL_FROM, to: [to], subject, text, html }),
+      body: JSON.stringify({ from: env.EMAIL_FROM, to: [to], subject, text, html, ...(headers ? { headers } : {}) }),
     });
     if (!res.ok) throw Errors.upstream("Email delivery failed.");
     return res.json();
@@ -32,4 +32,9 @@ const providers = {
 export async function sendEmail(message) {
   const env = getEnv();
   return providers[env.EMAIL_PROVIDER](message, env);
+}
+
+/** Which provider sends mail, and whether it really delivers (console only logs). */
+export function emailProviderName() {
+  return getEnv().EMAIL_PROVIDER;
 }

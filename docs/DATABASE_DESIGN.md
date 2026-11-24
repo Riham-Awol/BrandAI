@@ -11,6 +11,7 @@ Schema: [`prisma/schema.prisma`](../prisma/schema.prisma) · Migrations: `prisma
 | Migration | Phase | Summary |
 |---|---|---|
 | `20261124114911_init_foundation` | 0 | Foundation tables below |
+| `20261124210213_phase8_automation`, `20261124211204_phase8_job_locks` | 8 | `automation_settings`, `integrations`, `scheduled_items`, `email_contacts`, `email_campaigns`, `email_deliveries`, `reminders`, `automation_rules`, `automation_runs`, `job_locks` |
 | `20261124202445_phase7_stationery` | 7 | `business_details`, `brand_materials`, `brand_material_revisions`, `business_documents`; `ProjectType.COMPANY_PROFILE`; enums `MaterialKind`, `DocumentType`, `DocumentStatus` |
 | `20261124172827_phase6_website_builder` | 6 | `websites`, `website_versions`, `website_submissions`; enums `WebsiteType`, `WebsiteStatus`, `DomainStatus` |
 | `20261124165358_phase5_design_studio` | 5 | `designs`, `design_revisions`; enum `DesignKind` |
@@ -71,6 +72,12 @@ businesses 1─* business_products | business_services | business_locations | bu
 | `marketing_plans` *(P3)* | Immutable approved marketing plans (`data` JSON: settings, all section contents, computed budget), `status` APPROVED/SUPERSEDED, `version`, approver | unique (`business_id`,`version`); idx (`business_id`,`status`) | cascade with business |
 
 | `social_posts` *(P4)* | Planned/written post: `scheduled_date` (DATE), `platform`, `format`, pillar, title, objective, `is_promotion`, `status` IDEA/DRAFT/READY, current `content` JSON, `version`, `is_mock`, source `calendar_output_id` | idx (`project_id`,`scheduled_date`), (`workspace_id`,`deleted_at`), `business_id` | soft delete |
+| `automation_settings` *(P8)* | Per workspace: `mode` (DRAFT_ONLY/APPROVAL_REQUIRED/AUTOMATED), daily publish/email limits, separate approver, time zone | unique `workspace_id` | cascade |
+| `integrations` *(P8)* | Connected channel: `type` (WEBHOOK/TELEGRAM/FACEBOOK_PAGE), display `config`, AES-256-GCM `secret_encrypted`, status, last use/error | idx (`workspace_id`,`deleted_at`) | soft delete (secret wiped) |
+| `scheduled_items` *(P8)* | Planned outward action: source (post/campaign/custom), channel, content snapshot, `scheduled_at`, status workflow, requester/approver, attempts, lock | idx (`status`,`scheduled_at`), (`workspace_id`,`scheduled_at`), (`source_type`,`source_id`) | soft delete |
+| `email_contacts` *(P8)* | Audience: email, name, consent source/date, `unsubscribed_at`, unique unsubscribe token | unique (`business_id`,`email`) | cascade |
+| `email_campaigns` / `email_deliveries` *(P8)* | Campaign content and status; one delivery per contact (status, provider, error) | unique (`campaign_id`,`contact_id`) | soft delete / cascade |
+| `reminders`, `automation_rules`, `automation_runs`, `job_locks` *(P8)* | Personal reminders; preset rule recipes with params; automation history; scheduler lease lock | idx by workspace/time | cascade |
 | `business_details` *(P7)* | 1:1 business: legal name, address, contact, registration/tax numbers, bank details, `currency`, `default_tax_rate_bp`, `payment_terms_days`, invoice/quote prefixes and next numbers | unique `business_id` | cascade with business |
 | `brand_materials` *(P7)* | Branded item: `kind` (card, letterhead, tshirt, uniform, bag, mug, label, packaging), `name`, `spec` JSON, `version`, `is_mock` | idx (`workspace_id`,`deleted_at`), (`business_id`,`kind`) | soft delete |
 | `brand_material_revisions` *(P7)* | Every saved version of a material's spec | unique (`material_id`,`version`) | cascade |

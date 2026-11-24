@@ -13,6 +13,9 @@ const envSchema = z.object({
   APP_URL: z.preprocess(emptyToUndefined, z.url().default("http://localhost:3000")),
   // Phase 6: where custom domains should point (CNAME). Defaults to the APP_URL host.
   SITES_CNAME_TARGET: optionalString,
+  // Phase 8: 32-byte base64 key that encrypts integration credentials; bearer token for /api/v1/cron/run.
+  INTEGRATIONS_ENCRYPTION_KEY: optionalString,
+  CRON_SECRET: optionalString,
 
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
 

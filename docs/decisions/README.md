@@ -16,3 +16,4 @@ Template: Context · Options · Decision · Consequences.
 | [010](./010-free-ai-text-providers.md) | Free AI text providers (Gemini default; Groq, OpenRouter, Ollama) via one OpenAI-compatible adapter | Accepted |
 | [011](./011-cross-provider-ai-fallback.md) | Cross-provider fallback (Gemini → OpenRouter free models); OpenRouter free-only | Accepted |
 | [012](./012-website-rendering-and-domains.md) | Websites as structured configs rendered by controlled components; versioned publishing; DNS-verified custom domains | Accepted |
+| [013](./013-automation-policy-and-scheduler.md) | Permission-based automation (3 modes) and a MySQL scheduler instead of Redis (supersedes the Redis part of 006) | Accepted |

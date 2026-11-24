@@ -9,10 +9,11 @@
 | 4 — Social Media Studio | APPROVED | ☑ |
 | 5 — Creative Design Studio | APPROVED | ☑ |
 | 6 — Website Builder | APPROVED | ☑ |
-| 7 — Stationery & Merchandise | **COMPLETE — awaiting approval** | ☐ |
-| 8–10 | NOT STARTED | ☐ |
+| 7 — Stationery & Merchandise | APPROVED | ☑ |
+| 8 — Calendar & Automation | **COMPLETE — awaiting approval** | ☐ |
+| 9–10 | NOT STARTED | ☐ |
 
-**Current phase:** 7 (Stationery & Merchandise) · **Last updated:** 2026-11-24
+**Current phase:** 8 (Calendar & Automation) · **Last updated:** 2026-11-24
 
 **Second free AI provider — done (2026-11-24, ADR 011):** OpenRouter free models are configured as a fallback
 (`AI_TEXT_FALLBACK_PROVIDERS=openrouter`); verified live (Gemini failed → OpenRouter answered a design request
@@ -21,7 +22,54 @@ same way later (`openrouter,groq`).
 
 ---
 
-## Phase 7 — Stationery & Merchandise
+## Phase 8 — Calendar & Automation
+
+Plan and acceptance criteria: [phases/PHASE_8.md](./phases/PHASE_8.md)
+
+### Implemented and verified
+- `/automation`: calendar, queue & approvals, email campaigns, audience, rules & reminders, history, settings &
+  channels; notifications bell in the header; public unsubscribe page `/u/:token`; scheduler endpoint
+  `/api/v1/cron/run` (verified: 401 without the secret, runs with it).
+- Three permission-based modes enforced at publish time; new permissions `automation:approve|manage|autopilot`.
+- Integrations: signed webhooks (SSRF-guarded at connect time), Telegram, Facebook Page; AES-256-GCM credentials.
+- Scheduler is **MySQL-based** (lease lock + atomic claims) instead of Redis/BullMQ — see ADR 013.
+
+### Tests (all passing)
+| Suite | Count |
+|---|---|
+| Unit | 159 (Phase 7: 146) |
+| Integration (MySQL + mock provider + simulated channel APIs) | 116 (Phase 7: 107) |
+| End-to-end (desktop + mobile) | 39 (Phase 7: 35) |
+`npm run lint`, `npm run build` pass; all Phase 0–7 suites pass.
+
+### Verification notes
+- Channel adapters (webhook, Telegram, Facebook) are verified against simulated API responses; they were **not**
+  run against the live services (this environment has no test page/bot and blocks arbitrary outbound hosts). The
+  in-app "Test" button checks a real connection once credentials are added.
+- Email sending ran through the development console provider (logged, not delivered); real delivery needs an
+  email provider (Resend free tier is already supported) — the UI says so.
+
+### Defects found and fixed during the phase
+- Concurrent scheduler runs could exceed the daily limit (each counted before the other published) → runs are
+  serialized with a lease lock (regression test runs two at once).
+- CSV headers like "E-mail address" weren't recognised → header names normalized.
+- New items landed on a queue tab the user wasn't viewing → the queue jumps to the item's tab.
+- The email preview iframe would be blocked by the app's frame policy → sandboxed `srcDoc` preview.
+
+### Known limitations
+- Instagram, TikTok, LinkedIn and X need platform-approved developer apps (or a paid API for X); use a webhook with
+  Zapier/Make/n8n meanwhile. Posts are text + link (no media upload yet).
+- The scheduler needs an external trigger in production (any free cron); without it, use "Run now".
+- Email open/click tracking and bounces are not tracked (Phase 9 analytics; needs provider webhooks).
+- Times are shown in the viewer's browser time zone; rules use the workspace time zone setting.
+
+### Handover to Phase 9 (Analytics & Insights)
+- `automation_runs`, `scheduled_items` (published URLs), `email_deliveries` and website submissions are ready to feed
+  reports; engagement metrics will need platform APIs or manual entry.
+
+---
+
+## Phase 7 — Stationery & Merchandise (APPROVED)
 
 Plan and acceptance criteria: [phases/PHASE_7.md](./phases/PHASE_7.md)
 

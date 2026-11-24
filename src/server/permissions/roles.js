@@ -26,6 +26,10 @@ export const PERMISSIONS = {
   BILLING_MANAGE: "billing:manage",
   // Phase 6: publishing a website and connecting domains are public, outward-facing actions.
   WEBSITE_PUBLISH: "website:publish",
+  // Phase 8: approving outward actions, managing automation/integrations, and switching on autopilot.
+  AUTOMATION_APPROVE: "automation:approve",
+  AUTOMATION_MANAGE: "automation:manage",
+  AUTOMATION_AUTOPILOT: "automation:autopilot",
 };
 
 const P = PERMISSIONS;
@@ -41,8 +45,10 @@ const ADMIN = [
   P.FILES_DELETE,
   P.AUDIT_READ,
   P.WEBSITE_PUBLISH,
+  P.AUTOMATION_APPROVE,
+  P.AUTOMATION_MANAGE,
 ];
-const OWNER = [...ADMIN, P.WORKSPACE_DELETE, P.BILLING_MANAGE];
+const OWNER = [...ADMIN, P.WORKSPACE_DELETE, P.BILLING_MANAGE, P.AUTOMATION_AUTOPILOT];
 
 export const ROLE_PERMISSIONS = Object.freeze({
   OWNER: new Set(OWNER),

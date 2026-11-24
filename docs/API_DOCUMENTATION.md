@@ -199,6 +199,38 @@ Money is returned as minor-unit **strings** (`totalMinor: "14400"` = £144.00); 
 
 Printable pages (session required): `/print/documents/:id`, `/print/profiles/:id`.
 
+### Calendar & Automation (Phase 8)
+Base: `/workspaces/:ws/automation`.
+
+| Method | Path | Permission | Body / notes |
+|---|---|---|---|
+| GET / PUT | `/settings` | read / `automation:manage` (+ `automation:autopilot` to switch ON `AUTOMATED`) | `{ mode: DRAFT_ONLY\|APPROVAL_REQUIRED\|AUTOMATED, dailyPublishLimit, dailyEmailLimit, requireSeparateApprover, timezone }`; GET adds `permissions` and `platform` status |
+| GET / POST | `/integrations` | read / `automation:manage` | POST `{ type: WEBHOOK, name, url }` \| `{ type: TELEGRAM, name, botToken, chatId }` \| `{ type: FACEBOOK_PAGE, name, pageId, accessToken }`; secrets never returned; webhook `reveal.signingSecret` once |
+| PATCH / DELETE | `/integrations/:id` | `automation:manage` | PATCH `{ enabled }` |
+| POST | `/integrations/:id/test` | `automation:manage` | → `{ ok, ref? \| error }` |
+| GET / POST | `/items` | read / `business:update` | POST `{ businessId, sourceType: SOCIAL_POST\|EMAIL_CAMPAIGN\|CUSTOM, sourceId?, text?, link?, integrationId?, scheduledAt (ISO), submit }`; GET `?from&to&status=A,B` |
+| GET | `/items/:id` | read | |
+| POST | `/items/:id/submit` · `/cancel` · `/reschedule` `{ scheduledAt }` · `/posted` `{ externalUrl? }` | `business:update` | |
+| POST | `/items/:id/decision` | `automation:approve` | `{ approve, note? }` (separate-approver rule) |
+| POST | `/items/:id/publish-now` | `automation:approve` | immediate, audited; daily limits still apply |
+| GET | `/sources?businessId` | read | written posts and draft campaigns |
+| GET | `/calendar?from&to` | read | ≤ 100 days |
+| GET / POST · PATCH / DELETE | `/reminders` · `/reminders/:id` | member (own reminders) | `{ title, dueAt, note?, link? }` · `{ done }` |
+| GET / POST · PATCH / DELETE | `/rules` · `/rules/:id` | read / `automation:manage` | `{ template, name, integrationId?, time? }` |
+| GET | `/history?outcome&kind` | read | |
+| POST | `/run` | `automation:manage` | "Run now" for this workspace |
+| GET / POST | `/campaigns` | read / `business:update` | `{ businessId, name, subject, preheader, content: { heading, paragraphs[], ctaLabel, ctaUrl } }` |
+| POST | `/campaigns/draft` | `ai:generate` | `{ businessId, brief }` → AI draft (not saved) |
+| GET / PUT / DELETE | `/campaigns/:id` | read / `business:update` | only drafts editable |
+| GET | `/campaigns/:id/preview` | read | HTML (sandboxed) |
+| POST | `/campaigns/:id/test` | `business:update` | test email to the signed-in user |
+| GET / POST | `/contacts?businessId` | `business:update` | POST `{ businessId, email, name?, consentSource, consentConfirmed: true }` |
+| POST | `/contacts/import` | `business:update` | `{ businessId, csv, consentSource, consentConfirmed: true }` → `{ added, skipped, invalid }` |
+| DELETE | `/contacts/:id` | `business:update` | |
+
+Public: `POST /api/v1/cron/run` (Bearer `CRON_SECRET`); `POST /api/v1/unsubscribe/:token` (one-click; `?redirect=1`
+for the form); page `/u/:token`. Notifications: `GET /api/v1/notifications`, `PATCH { ids }`.
+
 ### Brand hub & assets (Phase 2)
 | Method | Path | Permission | Notes |
 |---|---|---|---|
@@ -215,6 +247,7 @@ Context sections: `basics`, `offering`, `audience`, `goals`, `competitors`,
 ## Roles → permissions
 
 `website:publish` (Phase 6): OWNER, ADMIN — publish/unpublish websites and manage custom domains.
+`automation:approve`, `automation:manage` (Phase 8): OWNER, ADMIN. `automation:autopilot` (Phase 8): OWNER only.
 
 | Permission | VIEWER | EDITOR | ADMIN | OWNER |
 |---|:-:|:-:|:-:|:-:|

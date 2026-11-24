@@ -122,3 +122,15 @@ test("mobile layout: invoice editor and branded item editor fit the screen", asy
   overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test("mobile layout: automation calendar agenda and settings fit the screen", async ({ page }) => {
+  await registerViaUi(page, newUser());
+  await page.goto("/automation");
+  await expect(page.getByRole("heading", { name: "Calendar & Automation" })).toBeVisible();
+  let overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+  await page.goto("/automation/settings");
+  await expect(page.getByRole("radio", { name: /Draft only/ })).toBeVisible();
+  overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+});

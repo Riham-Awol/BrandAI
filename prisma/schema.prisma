@@ -113,6 +113,14 @@ model Workspace {
   websiteSubmissions WebsiteSubmission[]
   materials          BrandMaterial[]
   documents          BusinessDocument[]
+  automationSettings AutomationSettings?
+  integrations       Integration[]
+  scheduledItems     ScheduledItem[]
+  emailContacts      EmailContact[]
+  emailCampaigns     EmailCampaign[]
+  reminders          Reminder[]
+  automationRules    AutomationRule[]
+  automationRuns     AutomationRun[]
 
   @@index([ownerId])
   @@index([deletedAt])
@@ -195,6 +203,9 @@ model Business {
   materials       BrandMaterial[]
   documents       BusinessDocument[]
   details         BusinessDetails?
+  scheduledItems  ScheduledItem[]
+  emailContacts   EmailContact[]
+  emailCampaigns  EmailCampaign[]
 
   @@index([workspaceId, deletedAt])
   @@index([createdById])
@@ -1100,4 +1111,266 @@ model BusinessDocument {
   @@index([workspaceId, deletedAt])
   @@index([businessId, type, status])
   @@map("business_documents")
+}
+
+// ── Phase 8: Calendar & Automation ──────────────────────────────────────────
+
+enum AutomationMode {
+  DRAFT_ONLY
+  APPROVAL_REQUIRED
+  AUTOMATED
+}
+
+// Workspace automation policy. External actions (publishing, sending) only
+// happen as this policy allows; limits are enforced by the runner.
+model AutomationSettings {
+  id                      String         @id @default(uuid()) @db.Char(36)
+  workspaceId             String         @unique @map("workspace_id") @db.Char(36)
+  mode                    AutomationMode @default(DRAFT_ONLY)
+  dailyPublishLimit       Int            @default(10) @map("daily_publish_limit")
+  dailyEmailLimit         Int            @default(200) @map("daily_email_limit")
+  requireSeparateApprover Boolean        @default(false) @map("require_separate_approver")
+  timezone                String         @default("Europe/London") @db.VarChar(60)
+  updatedById             String?        @map("updated_by_id") @db.Char(36)
+  createdAt               DateTime       @default(now()) @map("created_at")
+  updatedAt               DateTime       @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("automation_settings")
+}
+
+enum IntegrationType {
+  WEBHOOK
+  TELEGRAM
+  FACEBOOK_PAGE
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  DISABLED
+  ERROR
+}
+
+// Connected channel. `config` holds non-secret settings; secrets are AES-256-GCM
+// encrypted with INTEGRATIONS_ENCRYPTION_KEY and never returned by the API.
+model Integration {
+  id              String            @id @default(uuid()) @db.Char(36)
+  workspaceId     String            @map("workspace_id") @db.Char(36)
+  type            IntegrationType
+  name            String            @db.VarChar(120)
+  config          Json
+  secretEncrypted String            @map("secret_encrypted") @db.Text
+  status          IntegrationStatus @default(ACTIVE)
+  lastUsedAt      DateTime?         @map("last_used_at")
+  lastError       String?           @map("last_error") @db.VarChar(500)
+  createdById     String            @map("created_by_id") @db.Char(36)
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  deletedAt       DateTime?         @map("deleted_at")
+
+  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  scheduledItems ScheduledItem[]
+
+  @@index([workspaceId, deletedAt])
+  @@map("integrations")
+}
+
+enum ScheduledSource {
+  SOCIAL_POST
+  EMAIL_CAMPAIGN
+  CUSTOM
+}
+
+enum ScheduledStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  PUBLISHING
+  PUBLISHED
+  MANUAL_DUE
+  FAILED
+  CANCELLED
+}
+
+// One planned outward action (post, campaign send). Content is a snapshot of
+// what was approved, so later edits to the source can't change it unnoticed.
+model ScheduledItem {
+  id            String          @id @default(uuid()) @db.Char(36)
+  workspaceId   String          @map("workspace_id") @db.Char(36)
+  businessId    String          @map("business_id") @db.Char(36)
+  title         String          @db.VarChar(200)
+  sourceType    ScheduledSource @map("source_type")
+  sourceId      String?         @map("source_id") @db.Char(36)
+  integrationId String?         @map("integration_id") @db.Char(36)
+  content       Json
+  scheduledAt   DateTime        @map("scheduled_at")
+  status        ScheduledStatus @default(DRAFT)
+  requestedById String          @map("requested_by_id") @db.Char(36)
+  approvedById  String?         @map("approved_by_id") @db.Char(36)
+  approvedAt    DateTime?       @map("approved_at")
+  decisionNote  String?         @map("decision_note") @db.VarChar(500)
+  publishedAt   DateTime?       @map("published_at")
+  externalUrl   String?         @map("external_url") @db.VarChar(500)
+  attempts      Int             @default(0)
+  lastError     String?         @map("last_error") @db.VarChar(500)
+  lockedAt      DateTime?       @map("locked_at")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+  deletedAt     DateTime?       @map("deleted_at")
+
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  business    Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  integration Integration? @relation(fields: [integrationId], references: [id], onDelete: SetNull)
+
+  @@index([status, scheduledAt])
+  @@index([workspaceId, scheduledAt])
+  @@index([sourceType, sourceId])
+  @@map("scheduled_items")
+}
+
+// Email audience. Contacts are added only with recorded consent; every email
+// carries a one-click unsubscribe link (token).
+model EmailContact {
+  id               String    @id @default(uuid()) @db.Char(36)
+  workspaceId      String    @map("workspace_id") @db.Char(36)
+  businessId       String    @map("business_id") @db.Char(36)
+  email            String    @db.VarChar(254)
+  name             String?   @db.VarChar(120)
+  consentSource    String    @map("consent_source") @db.VarChar(200)
+  consentAt        DateTime  @map("consent_at")
+  unsubscribedAt   DateTime? @map("unsubscribed_at")
+  unsubscribeToken String    @unique @map("unsubscribe_token") @db.Char(43)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  workspace  Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  business   Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  deliveries EmailDelivery[]
+
+  @@unique([businessId, email])
+  @@index([workspaceId])
+  @@map("email_contacts")
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+}
+
+model EmailCampaign {
+  id          String         @id @default(uuid()) @db.Char(36)
+  workspaceId String         @map("workspace_id") @db.Char(36)
+  businessId  String         @map("business_id") @db.Char(36)
+  name        String         @db.VarChar(160)
+  subject     String         @db.VarChar(200)
+  preheader   String         @default("") @db.VarChar(200)
+  content     Json
+  status      CampaignStatus @default(DRAFT)
+  sentCount   Int            @default(0) @map("sent_count")
+  failedCount Int            @default(0) @map("failed_count")
+  sentAt      DateTime?      @map("sent_at")
+  isMock      Boolean        @default(false) @map("is_mock")
+  createdById String         @map("created_by_id") @db.Char(36)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  deletedAt   DateTime?      @map("deleted_at")
+
+  workspace  Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  business   Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  deliveries EmailDelivery[]
+
+  @@index([workspaceId, deletedAt])
+  @@map("email_campaigns")
+}
+
+// One email to one contact (idempotent sending; counts against daily limits).
+model EmailDelivery {
+  id         String    @id @default(uuid()) @db.Char(36)
+  campaignId String    @map("campaign_id") @db.Char(36)
+  contactId  String    @map("contact_id") @db.Char(36)
+  status     String    @db.VarChar(20)
+  provider   String    @db.VarChar(40)
+  error      String?   @db.VarChar(300)
+  sentAt     DateTime? @map("sent_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  campaign EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contact  EmailContact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, contactId])
+  @@index([createdAt])
+  @@map("email_deliveries")
+}
+
+model Reminder {
+  id          String    @id @default(uuid()) @db.Char(36)
+  workspaceId String    @map("workspace_id") @db.Char(36)
+  userId      String    @map("user_id") @db.Char(36)
+  createdById String    @map("created_by_id") @db.Char(36)
+  title       String    @db.VarChar(200)
+  note        String?   @db.VarChar(1000)
+  link        String?   @db.VarChar(300)
+  dueAt       DateTime  @map("due_at")
+  firedAt     DateTime? @map("fired_at")
+  doneAt      DateTime? @map("done_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([firedAt, dueAt])
+  @@index([workspaceId, userId])
+  @@map("reminders")
+}
+
+// Preset automation recipes (no user code). `params` is validated per template.
+model AutomationRule {
+  id          String    @id @default(uuid()) @db.Char(36)
+  workspaceId String    @map("workspace_id") @db.Char(36)
+  template    String    @db.VarChar(60)
+  name        String    @db.VarChar(160)
+  params      Json
+  enabled     Boolean   @default(true)
+  lastRunAt   DateTime? @map("last_run_at")
+  createdById String    @map("created_by_id") @db.Char(36)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, deletedAt])
+  @@map("automation_rules")
+}
+
+// Automation history: every decision the runner or a person made about automated work.
+model AutomationRun {
+  id          String   @id @default(uuid()) @db.Char(36)
+  workspaceId String   @map("workspace_id") @db.Char(36)
+  kind        String   @db.VarChar(40)
+  outcome     String   @db.VarChar(20)
+  message     String   @db.VarChar(500)
+  ruleId      String?  @map("rule_id") @db.Char(36)
+  itemId      String?  @map("item_id") @db.Char(36)
+  actorId     String?  @map("actor_id") @db.Char(36)
+  details     Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@map("automation_runs")
+}
+
+// Lease locks for background jobs (one automation run at a time across instances).
+model JobLock {
+  name        String   @id @db.VarChar(80)
+  owner       String   @db.Char(36)
+  lockedUntil DateTime @map("locked_until")
+
+  @@map("job_locks")
 }

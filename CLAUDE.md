@@ -27,6 +27,7 @@ Read `docs/PHASE_STATUS.md` first; never start a phase without explicit approval
 - Phase modules live in `src/modules/<key>/`, depend on `src/server/*`, never the reverse. Follow `src/modules/launch` (schemas → sections → prompts → service → mock-fixtures → components).
 - Websites: AI returns structured content only (`aiSiteSchema`); render exclusively through `src/modules/website/components/site/*` (no hooks, container queries); links must pass `isSafeLink`; public pages read only published snapshots. Publishing/domains need `website:publish`.
 - Money: integer minor units (BigInt) via `src/modules/stationery/money.js`; never floats; return as strings in JSON. Print-size artwork goes through `src/server/stationery/draw.js` (`doc()` = physical mm).
+- Automation: every outward action goes through `scheduled_items` + the runner (`decidePublish` policy, mode/approval/limits re-checked at publish time, logged to `automation_runs`). Outbound HTTP to user URLs only via `outboundFetch(…, { guard: true })`. Credentials via `encryptSecret`; never return secrets.
 - Studio outputs: store in `projects`/`project_outputs` (append-only versions); render/edit with `src/components/structured/*`.
 - Register a mock fixture for every new AI task so e2e can run with `AI_TEXT_PROVIDER=mock`; fixtures must pass their schema (unit test).
 - Numbers the business relies on (totals, shares) are computed in code, never trusted from AI output. Charts follow the dataviz skill (validated colour tokens, table view).
