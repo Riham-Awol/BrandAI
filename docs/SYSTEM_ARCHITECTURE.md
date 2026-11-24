@@ -23,7 +23,7 @@ Browser ──► Next.js (Vercel)
                     └─ actions/         server actions (UI mutations)
                          │
                          ├─► MySQL 8 (Prisma 7 + MariaDB driver adapter)
-                         ├─► Anthropic API (text)          [server only]
+                         ├─► AI text: Gemini free tier (default) / Groq / OpenRouter / Ollama / Anthropic [server only]
                          ├─► S3-compatible storage         [server only]
                          └─► Resend (email)                [server only]
 ```

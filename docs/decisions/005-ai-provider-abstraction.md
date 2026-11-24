@@ -16,3 +16,5 @@
 `pricing.js` must be maintained when models change. Model can be overridden per task
 (e.g. a cheaper model for bulk tasks) — that choice is made per phase with approval.
 **Status.** Accepted (approved with Phase 0, 2026-11-24).
+
+**Update (owner asked for free options).** The default text provider is now the free Google Gemini tier through the OpenAI-compatible adapter; see ADR 010. Anthropic remains an optional paid provider.

@@ -1,0 +1,153 @@
+import { z } from "zod";
+import { AppError, Errors } from "../../errors.js";
+
+/**
+ * Text provider for any OpenAI-compatible Chat Completions endpoint
+ * (Gemini free tier, Groq, OpenRouter, Ollama, …). Uses plain fetch.
+ *
+ * Structured output strategy, most to least strict:
+ *   1. response_format: json_schema (strict)
+ *   2. response_format: json_object + schema in the instructions
+ *   3. no response_format + schema in the instructions
+ * A 400 from the provider downgrades the mode (remembered per endpoint/model).
+ * The JSON is validated with the Zod schema; on failure the model gets one
+ * repair attempt with the validation errors.
+ */
+const MODES = ["json_schema", "json_object", "prompt"];
+const modeMemory = new Map();
+const TIMEOUT_MS = 180_000;
+
+export function toJsonSchema(schema) {
+  const json = z.toJSONSchema(schema);
+  delete json.$schema;
+  return json;
+}
+
+/** Extracts a JSON value from model text (handles ``` fences and leading prose). */
+export function extractJson(text) {
+  if (typeof text !== "string") return undefined;
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidate = (fenced ? fenced[1] : text).trim();
+  try {
+    return JSON.parse(candidate);
+  } catch {
+    const start = candidate.search(/[[{]/);
+    const end = Math.max(candidate.lastIndexOf("}"), candidate.lastIndexOf("]"));
+    if (start === -1 || end <= start) return undefined;
+    try {
+      return JSON.parse(candidate.slice(start, end + 1));
+    } catch {
+      return undefined;
+    }
+  }
+}
+
+function schemaInstructions(jsonSchema) {
+  return `Respond with a single JSON object only (no prose, no markdown) that validates against this JSON Schema:\n${JSON.stringify(jsonSchema)}`;
+}
+
+function describeIssues(error) {
+  return error.issues
+    .slice(0, 20)
+    .map((i) => `- ${i.path.join(".") || "(root)"}: ${i.message}`)
+    .join("\n");
+}
+
+export function createOpenAICompatibleTextProvider({ name, baseUrl, model: defaultModel, apiKey, missing = [], fetchImpl = fetch }) {
+  if (missing.length) {
+    return {
+      name,
+      configured: false,
+      async generate() {
+        throw Errors.notConfigured(`AI text generation (${missing.join(", ")} missing)`);
+      },
+    };
+  }
+
+  async function call(body) {
+    let res;
+    try {
+      res = await fetchImpl(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}) },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+    } catch (error) {
+      if (error?.name === "TimeoutError") throw Errors.upstream("The AI provider took too long to respond.");
+      throw Errors.upstream("Could not reach the AI provider.");
+    }
+    if (res.ok) return res.json();
+    const detail = (await res.text().catch(() => "")).slice(0, 300);
+    if (res.status === 401 || res.status === 403) throw new AppError("AI_PROVIDER_AUTH", "The AI provider rejected the server credentials.", 503);
+    if (res.status === 429) throw new AppError("AI_PROVIDER_BUSY", "The free AI provider's rate limit was reached. Please wait a minute and try again.", 503);
+    if (res.status === 400 || res.status === 422) throw new AppError("AI_BAD_REQUEST", "The AI request was rejected.", 502, { providerMessage: detail });
+    throw Errors.upstream("The AI provider returned an error.");
+  }
+
+  return {
+    name,
+    configured: true,
+    async generate({ system, prompt, schema, model = defaultModel, maxTokens = 8000 }) {
+      const jsonSchema = schema ? toJsonSchema(schema) : null;
+      const memoryKey = `${baseUrl}|${model}`;
+      let modeIndex = schema ? MODES.indexOf(modeMemory.get(memoryKey) ?? "json_schema") : 2;
+      const usage = { inputTokens: 0, outputTokens: 0 };
+
+      const buildBody = (mode, messages) => ({
+        model,
+        max_tokens: maxTokens,
+        messages,
+        ...(mode === "json_schema" ? { response_format: { type: "json_schema", json_schema: { name: "result", strict: true, schema: jsonSchema } } } : {}),
+        ...(mode === "json_object" ? { response_format: { type: "json_object" } } : {}),
+      });
+
+      const systemFor = (mode) => (schema && mode !== "json_schema" ? `${system}\n\n${schemaInstructions(jsonSchema)}` : system);
+
+      // 1) Find a structured-output mode the endpoint accepts.
+      let response;
+      let mode;
+      let messages;
+      for (; modeIndex < MODES.length; modeIndex++) {
+        mode = MODES[modeIndex];
+        messages = [
+          { role: "system", content: systemFor(mode) },
+          { role: "user", content: prompt },
+        ];
+        try {
+          response = await call(buildBody(mode, messages));
+          if (schema) modeMemory.set(memoryKey, mode);
+          break;
+        } catch (error) {
+          if (!(error instanceof AppError && error.code === "AI_BAD_REQUEST") || modeIndex === MODES.length - 1) throw error;
+        }
+      }
+
+      const read = (r) => {
+        usage.inputTokens += r.usage?.prompt_tokens ?? 0;
+        usage.outputTokens += r.usage?.completion_tokens ?? 0;
+        const choice = r.choices?.[0];
+        if (choice?.finish_reason === "length") throw new AppError("AI_OUTPUT_TRUNCATED", "The AI response was too long and was cut off.", 502);
+        if (choice?.finish_reason === "content_filter") throw new AppError("AI_REFUSED", "The AI declined this request. Try rephrasing it.", 422);
+        return choice?.message?.content ?? "";
+      };
+
+      let text = read(response);
+      if (!schema) return { text, data: null, model: response.model ?? model, usage };
+
+      // 2) Validate; one repair attempt with the validation errors.
+      let data = extractJson(text);
+      let check = schema.safeParse(data);
+      if (!check.success) {
+        const problem = data === undefined ? "Your reply was not valid JSON." : `Your JSON did not match the schema:\n${describeIssues(check.error)}`;
+        const repair = await call(
+          buildBody(mode, [...messages, { role: "assistant", content: text }, { role: "user", content: `${problem}\nReturn the complete corrected JSON object only.` }]),
+        );
+        text = read(repair);
+        data = extractJson(text);
+        check = schema.safeParse(data);
+      }
+      return { text, data: check.success ? check.data : data, model: response.model ?? model, usage };
+    },
+  };
+}

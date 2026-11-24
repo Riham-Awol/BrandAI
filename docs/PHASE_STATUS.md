@@ -48,8 +48,17 @@ Plan and acceptance criteria: [phases/PHASE_2.md](./phases/PHASE_2.md). Free-onl
 - Logo tiles overflowed for stacked/mark variants → absolute-fit images.
 - `opentype.js` default import failed under Turbopack → named import.
 
+### Change after Phase 2 delivery — free AI providers (owner request)
+- Default AI text provider switched from Anthropic (paid) to **Google Gemini free tier** via a new
+  OpenAI-compatible adapter that also supports Groq, OpenRouter free models, Ollama and any compatible
+  endpoint (ADR 010). Strict JSON-schema output with automatic fallback and one repair attempt.
+- Tests: 10 new (unit + integration against a local HTTP server imitating the provider). Totals now
+  80 unit · 63 integration · 19 e2e — all passing.
+- Live check: a Gemini key was saved to the environment but Google rejected it as invalid
+  ("Please pass a valid API key"), so real output is still unverified. The key needs to be re-entered.
+
 ### Known limitations
-- **Real AI still not verified** (no Anthropic key in this environment); all AI paths verified with the mock provider.
+- **Real AI still not verified**; all AI paths verified with the mock provider and a provider simulator.
 - Logos are typographic/icon-based compositions, not illustrations. Illustrative imagery would need an
   image model (a free option such as Pollinations or Hugging Face can be added behind the existing image-provider boundary).
 - Wordmarks support Latin scripts only (bundled font subsets); unsupported characters fall back to Inter and the UI shows a warning.

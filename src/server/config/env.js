@@ -18,9 +18,15 @@ const envSchema = z.object({
   NEXTAUTH_URL: optionalString,
 
   // AI
-  AI_TEXT_PROVIDER: z.enum(["anthropic", "mock"]).default("anthropic"),
+  // Free options: gemini (default), groq, openrouter, ollama, openai_compatible. Paid: anthropic.
+  AI_TEXT_PROVIDER: z.enum(["gemini", "groq", "openrouter", "ollama", "openai_compatible", "anthropic", "mock"]).default("gemini"),
   AI_IMAGE_PROVIDER: z.enum(["none", "mock"]).default("none"),
-  AI_TEXT_MODEL: z.preprocess(emptyToUndefined, z.string().default("claude-opus-5-5")),
+  AI_TEXT_MODEL: optionalString,
+  AI_BASE_URL: optionalString,
+  AI_API_KEY: optionalString,
+  GEMINI_API_KEY: optionalString,
+  GROQ_API_KEY: optionalString,
+  OPENROUTER_API_KEY: optionalString,
   AI_ALLOW_MOCK: z.preprocess(emptyToUndefined, z.enum(["true", "false"]).default("false")),
   ANTHROPIC_API_KEY: optionalString,
 

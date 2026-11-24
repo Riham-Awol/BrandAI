@@ -31,7 +31,7 @@ jobs:
       APP_ENV: test
       EMAIL_PROVIDER: console
       STORAGE_PROVIDER: database
-      AI_TEXT_PROVIDER: anthropic
+      AI_TEXT_PROVIDER: gemini
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

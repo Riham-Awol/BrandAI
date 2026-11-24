@@ -19,8 +19,10 @@ context** across every studio.
   typography, vector logos (4 layouts × 3 themes, editable, SVG/PNG download) and guidelines → an approved,
   versioned brand identity reused by every studio. Brand hub with asset library at `/businesses/:id/brand`.
 
-AI features need `ANTHROPIC_API_KEY`. Without it the studio explains that AI is not configured. To try
-the flows offline in development, set `AI_TEXT_PROVIDER=mock` and `AI_ALLOW_MOCK=true` — results are
+**AI is free by default.** Brand AI uses Google Gemini's free tier (`AI_TEXT_PROVIDER=gemini`). Get a free
+key at https://aistudio.google.com/apikey and set `GEMINI_API_KEY`. Other free options: Groq, OpenRouter free
+models, or Ollama on your own machine (see `.env.example`). Without a key the studios explain that AI is not
+configured. To try the flows offline, set `AI_TEXT_PROVIDER=mock` and `AI_ALLOW_MOCK=true` — results are
 clearly labelled sample data (refused in production).
 
 ## Stack
@@ -66,7 +68,7 @@ npm run check                     # lint + unit + integration + build
 See [.env.example](.env.example) for the full list. Required to boot:
 `DATABASE_URL`, `NEXTAUTH_SECRET` (required in production), `NEXTAUTH_URL`, `APP_URL`.
 Optional integrations (features return `503 SERVICE_NOT_CONFIGURED` until set):
-`ANTHROPIC_API_KEY`, `S3_*` with `STORAGE_PROVIDER=s3`, `RESEND_API_KEY` with `EMAIL_PROVIDER=resend`.
+`GEMINI_API_KEY` (free; or another free provider), `S3_*` with `STORAGE_PROVIDER=s3`, `RESEND_API_KEY` with `EMAIL_PROVIDER=resend`.
 
 In development, password-reset emails are printed to the server console
 (`EMAIL_PROVIDER=console`); production refuses that setting.
@@ -102,7 +104,9 @@ Production startup refuses mock AI providers and the console email provider.
 ## Known limitations
 Phase-specific limitations are listed in [docs/PHASE_STATUS.md](docs/PHASE_STATUS.md).
 - Live AI output has not been verified yet (no API key in the build environment); AI flows are tested with the mock provider.
-- External providers not connected: AI text (needs `ANTHROPIC_API_KEY`) and email (needs Resend).
+- AI text uses free tiers (Gemini by default): rate-limited, quality varies by model, and each provider has its
+  own data-use terms. Live AI output has not yet been verified in the build environment.
+- Email is not connected (needs Resend; free tier available).
   File storage works out of the box with the free `database` adapter (≤5 MB per file).
 - Logos are typographic/icon compositions rendered as vectors; wordmarks support Latin scripts only.
 - Email verification, MFA, OAuth sign-in and "log out of all devices" UI are not implemented yet

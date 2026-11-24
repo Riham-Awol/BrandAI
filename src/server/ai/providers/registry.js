@@ -2,6 +2,8 @@ import "server-only";
 import { getEnv } from "../../config/env.js";
 import { Errors } from "../../errors.js";
 import { createAnthropicTextProvider } from "./anthropic.js";
+import { createOpenAICompatibleTextProvider } from "./openai-compatible.js";
+import { OPENAI_COMPATIBLE_PROVIDERS, resolvePreset } from "./presets.js";
 import { createMockImageProvider, createMockTextProvider } from "./mock.js";
 import { mockFixtureResponder } from "./mock-fixtures.js";
 
@@ -17,9 +19,12 @@ let overrides = {};
 export function getTextProvider() {
   if (overrides.text) return overrides.text;
   const env = getEnv();
+  if (OPENAI_COMPATIBLE_PROVIDERS.includes(env.AI_TEXT_PROVIDER)) {
+    return createOpenAICompatibleTextProvider(resolvePreset(env.AI_TEXT_PROVIDER, env));
+  }
   switch (env.AI_TEXT_PROVIDER) {
     case "anthropic":
-      return createAnthropicTextProvider({ apiKey: env.ANTHROPIC_API_KEY, defaultModel: env.AI_TEXT_MODEL });
+      return createAnthropicTextProvider({ apiKey: env.ANTHROPIC_API_KEY, defaultModel: env.AI_TEXT_MODEL || "claude-opus-5-5" });
     case "mock":
       if (env.AI_ALLOW_MOCK !== "true") throw Errors.notConfigured("Mock AI (set AI_ALLOW_MOCK=true outside production)");
       return createMockTextProvider({ responder: mockFixtureResponder });

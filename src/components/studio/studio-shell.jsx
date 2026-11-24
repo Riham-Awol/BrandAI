@@ -33,7 +33,7 @@ export function StudioShell({ eyebrow, title, subtitle, actions, ai, steps, sect
         <Alert variant="info">
           <AlertCircle />
           <AlertTitle>AI generation is not available on this server yet</AlertTitle>
-          <AlertDescription>An administrator needs to configure the AI provider (ANTHROPIC_API_KEY). You can still review and edit existing results.</AlertDescription>
+          <AlertDescription>An administrator needs to configure an AI provider — free options include Google Gemini, Groq, OpenRouter and Ollama (see .env.example). You can still review and edit existing results.</AlertDescription>
         </Alert>
       )}
       {ai.isMock && (
