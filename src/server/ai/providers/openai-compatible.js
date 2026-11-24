@@ -114,6 +114,8 @@ export function createOpenAICompatibleTextProvider({
       const isCooling = (m) => (cooldowns.get(`${baseUrl}|${m}`) ?? 0) > now;
       const chain = [...all.filter((m) => !isCooling(m)), ...all.filter(isCooling)];
       const started = Date.now();
+      // A cross-provider fallback chain passes a shorter budget so later providers get time too.
+      const budget = request.deadlineMs ?? deadlineMs;
       let lastError;
       const overloaded = [];
       const attempt = async (model) => {
@@ -130,15 +132,15 @@ export function createOpenAICompatibleTextProvider({
         }
       };
       for (const model of chain) {
-        if (lastError && Date.now() - started > deadlineMs) break;
+        if (lastError && Date.now() - started > budget) break;
         const outcome = await attempt(model);
         if (outcome) return outcome.result;
       }
       // "High demand" spikes are usually brief: one more pass over overloaded models (not quota-limited ones).
-      if (overloaded.length && Date.now() - started + retryDelayMs < deadlineMs) {
+      if (overloaded.length && Date.now() - started + retryDelayMs < budget) {
         await new Promise((r) => setTimeout(r, retryDelayMs));
         for (const model of [...overloaded]) {
-          if (Date.now() - started > deadlineMs) break;
+          if (Date.now() - started > budget) break;
           const outcome = await attempt(model);
           if (outcome) {
             cooldowns.delete(`${baseUrl}|${model}`);

@@ -77,6 +77,7 @@ export async function generateText({ user, workspaceId, businessId, module, task
         where: { id: generation.id },
         data: {
           status: "SUCCEEDED",
+          provider: result.provider ?? provider.name,
           model: result.model,
           output: { text: schema ? undefined : result.text, data: result.data ?? undefined, isMock: provider.isMock === true },
           latencyMs: Date.now() - started,
@@ -87,7 +88,7 @@ export async function generateText({ user, workspaceId, businessId, module, task
           workspaceId: scope.workspaceId,
           userId: user.id,
           generationId: generation.id,
-          provider: provider.name,
+          provider: result.provider ?? provider.name,
           model: result.model,
           kind: "TEXT",
           inputTokens: result.usage.inputTokens + (result.usage.cacheReadTokens ?? 0) + (result.usage.cacheWriteTokens ?? 0),

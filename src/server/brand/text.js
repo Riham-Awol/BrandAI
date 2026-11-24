@@ -158,3 +158,15 @@ export function textBlock(font, lines, size, { x, y, width, align = "left", line
   });
   return { svg: parts.join(""), height: lines.length ? (lines.length - 1) * size * lineHeight + size * 1.05 : 0 };
 }
+
+/**
+ * Maps typographic characters that bundled fonts often lack (non-breaking/figure
+ * hyphens, special spaces, zero-width marks) to safe equivalents. AI output uses them.
+ */
+export function normalizeTypography(text) {
+  return String(text)
+    .replace(/[\u2010\u2011\u2043]/g, "-")
+    .replace(/[\u2012\u2015]/g, "\u2013")
+    .replace(/[\u00a0\u2000-\u200a\u202f\u205f\u3000]/g, " ")
+    .replace(/[\u200b-\u200d\u2060\ufeff]/g, "");
+}

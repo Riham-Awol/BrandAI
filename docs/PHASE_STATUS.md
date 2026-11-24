@@ -12,9 +12,10 @@
 
 **Current phase:** 5 (Creative Design Studio) · **Last updated:** 2026-11-24
 
-**Open follow-up (owner, 2026-11-24):** add Groq as a second free AI provider (cross-provider fallback) and
-re-verify the remaining Phase 3 sections live. Status: the Groq console showed an error on the owner's side
-(2026-11-24); the owner approved Phase 4 and asked to continue with Phase 5 and revisit Groq afterwards.
+**Second free AI provider — done (2026-11-24, ADR 011):** OpenRouter free models are configured as a fallback
+(`AI_TEXT_FALLBACK_PROVIDERS=openrouter`); verified live (Gemini failed → OpenRouter answered a design request
+in 46 s). OpenRouter is restricted to `:free` models so the key's credit is never spent. Groq can be added the
+same way later (`openrouter,groq`).
 
 ---
 
@@ -44,7 +45,8 @@ Plan and acceptance criteria: [phases/PHASE_5.md](./phases/PHASE_5.md)
 - AI option generation uses the same orchestrator and free Gemini provider as earlier phases; verified with
   the mock provider. Live attempt (2026-11-24 17:16 UTC): every free Gemini model returned 503 "high demand"
   or quota errors; the app showed "The AI model is busy… try again shortly" after 13 s and saved nothing.
-  A second free provider (Groq) remains the recommended fix — see the open follow-up.
+  Fixed by the OpenRouter fallback: a live design request then succeeded (see ADR 011). That live run also found
+  typographic characters (non-breaking hyphens) missing from fonts → now normalized before drawing.
 
 ### Defects found and fixed during the phase
 - Words were split mid-word when a headline was too long → fitting now shrinks before breaking words.

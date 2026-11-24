@@ -4,7 +4,7 @@ import { ICON_SET } from "@/modules/brand/catalog/icons.js";
 import { DESIGN_FORMATS } from "@/modules/design/catalog.js";
 import { loadFont } from "../brand/fonts.js";
 import { iconMarkup, renderLogoSvg } from "../brand/logo-renderer.js";
-import { fitText, hasAllGlyphs, measure, num, textBlock, xml } from "../brand/text.js";
+import { fitText, hasAllGlyphs, measure, normalizeTypography, num, textBlock, xml } from "../brand/text.js";
 
 /**
  * Renders a design spec to SVG using the approved brand (colours, fonts, logo).
@@ -410,7 +410,16 @@ async function strip(cmp, { W, H }) {
  * @param {{ spec, format, brand?, image?: string|null, scale?: number }} input
  * `image` must be a data URI produced by the design service from a validated upload.
  */
-export async function renderDesignSvg({ spec, format, brand = DEFAULT_BRAND, image = null, scale = 1 }) {
+/** Deep-normalizes every string of the spec for rendering. */
+function cleanSpec(value) {
+  if (typeof value === "string") return normalizeTypography(value);
+  if (Array.isArray(value)) return value.map(cleanSpec);
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, cleanSpec(v)]));
+  return value;
+}
+
+export async function renderDesignSvg({ spec: rawSpec, format, brand = DEFAULT_BRAND, image = null, scale = 1 }) {
+  const spec = cleanSpec(rawSpec);
   const { width: W, height: H } = DESIGN_FORMATS[format];
   const colors = resolveColors(brand.colors, spec.colorScheme);
   const cmp = new Composer(spec, brand, colors, W, H);

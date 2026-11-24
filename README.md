@@ -31,7 +31,9 @@ context** across every studio.
 
 **AI is free by default.** Brand AI uses Google Gemini's free tier (`AI_TEXT_PROVIDER=gemini`). Get a free
 key at https://aistudio.google.com/apikey and set `GEMINI_API_KEY`. Other free options: Groq, OpenRouter free
-models, or Ollama on your own machine (see `.env.example`). Without a key the studios explain that AI is not
+models, or Ollama on your own machine (see `.env.example`). Recommended: add OpenRouter as a free fallback
+(`OPENROUTER_API_KEY` + `AI_TEXT_FALLBACK_PROVIDERS="openrouter"`) so AI keeps working when Gemini's free quota
+runs out — only `:free` OpenRouter models are ever used. Without a key the studios explain that AI is not
 configured. To try the flows offline, set `AI_TEXT_PROVIDER=mock` and `AI_ALLOW_MOCK=true` — results are
 clearly labelled sample data (refused in production).
 

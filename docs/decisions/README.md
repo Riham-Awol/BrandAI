@@ -14,3 +14,4 @@
 Template: Context · Options · Decision · Consequences.
 | [009](./009-structured-vector-logos.md) | Free logo generation: AI-designed specs rendered as vector SVG | Accepted |
 | [010](./010-free-ai-text-providers.md) | Free AI text providers (Gemini default; Groq, OpenRouter, Ollama) via one OpenAI-compatible adapter | Accepted |
+| [011](./011-cross-provider-ai-fallback.md) | Cross-provider fallback (Gemini → OpenRouter free models); OpenRouter free-only | Accepted |

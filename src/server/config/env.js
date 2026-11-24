@@ -23,6 +23,8 @@ const envSchema = z.object({
   AI_IMAGE_PROVIDER: z.enum(["none", "mock"]).default("none"),
   AI_TEXT_MODEL: optionalString,
   AI_TEXT_FALLBACK_MODELS: optionalString,
+  // Free providers tried when the primary is busy/out of quota, e.g. "openrouter,groq".
+  AI_TEXT_FALLBACK_PROVIDERS: optionalString,
   AI_BASE_URL: optionalString,
   AI_API_KEY: optionalString,
   GEMINI_API_KEY: optionalString,

@@ -8,7 +8,7 @@ import { diversifyTemplates, ensurePhotoLayout, normalizeSpec } from "@/modules/
 import { DEFAULT_BRAND, DESIGN_SVG_HEADERS, renderDesignSvg, resolveColors } from "@/server/design/renderer.js";
 import { contrastRatio } from "@/modules/brand/color.js";
 import { loadFont } from "@/server/brand/fonts.js";
-import { fitText, measure, wrapText } from "@/server/brand/text.js";
+import { fitText, measure, normalizeTypography, wrapText } from "@/server/brand/text.js";
 
 const spec = DESIGN_OPTIONS_FIXTURE.options[0];
 const concept = mockFixtureResponder({ module: "brand", task: "logo_concepts" }).data.concepts[0];
@@ -74,6 +74,13 @@ describe("text fitting", () => {
       for (const word of line.split(" ")) expect("Sourdough baked before sunrise".split(" ")).toContain(word);
     }
     expect(wrapText(font, "a\nb", 20, 500)).toEqual(["a", "b"]);
+  });
+
+  it("maps typographic characters the fonts lack", async () => {
+    expect(normalizeTypography("9am\u201112pm\u00a0Hands\u2010on\u200b")).toBe("9am-12pm Hands-on");
+    const font = await loadFont("inter", "500");
+    const { hasAllGlyphs } = await import("@/server/brand/text.js");
+    expect(hasAllGlyphs(font, normalizeTypography("Hands\u2011on 9am\u201212pm"))).toBe(true);
   });
 
   it("truncates with an ellipsis when even the minimum size overflows", async () => {

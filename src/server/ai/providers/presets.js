@@ -27,9 +27,14 @@ export const TEXT_PROVIDER_PRESETS = {
   openrouter: {
     label: "OpenRouter (free models)",
     baseUrl: "https://openrouter.ai/api/v1",
-    defaultModel: "meta-llama/llama-3.3-70b-instruct:free",
+    // Free models verified 2026-11-24 (JSON output, 1.5–25 s). The list changes often:
+    // https://openrouter.ai/models?max_price=0
+    defaultModel: "nvidia/nemotron-3-ultra-550b-a55b:free",
+    fallbackModels: ["inclusionai/ling-3.2-flash:free", "baidu/ernie-5.5-flash-preview:free", "nvidia/nemotron-3.5-super-vl:free", "google/gemma-4-31b-it:free"],
     keyEnv: "OPENROUTER_API_KEY",
     requiresKey: true,
+    // OpenRouter keys can carry paid credit: only ":free" models are ever called.
+    freeOnly: true,
   },
   ollama: {
     label: "Ollama (free, runs on your own machine)",
@@ -50,20 +55,42 @@ export const TEXT_PROVIDER_PRESETS = {
 export const OPENAI_COMPATIBLE_PROVIDERS = Object.keys(TEXT_PROVIDER_PRESETS);
 
 /** Resolves endpoint, model and key for a provider from the environment (pure). */
-export function resolvePreset(provider, env) {
+const isFree = (m) => m.endsWith(":free");
+
+/**
+ * Resolves endpoint, model and key for a provider from the environment (pure).
+ * The AI_TEXT_MODEL / AI_TEXT_FALLBACK_MODELS / AI_BASE_URL / AI_API_KEY overrides apply
+ * to the primary provider only; fallback providers (AI_TEXT_FALLBACK_PROVIDERS) use their presets.
+ */
+export function resolvePreset(provider, env, { primary = true } = {}) {
   const preset = TEXT_PROVIDER_PRESETS[provider];
   if (!preset) return null;
-  const baseUrl = (env.AI_BASE_URL || preset.baseUrl || "").replace(/\/+$/, "");
-  const model = env.AI_TEXT_MODEL || preset.defaultModel;
-  const fallbackModels = env.AI_TEXT_FALLBACK_MODELS
-    ? env.AI_TEXT_FALLBACK_MODELS.split(",").map((m) => m.trim()).filter(Boolean)
-    : env.AI_TEXT_MODEL
+  const o = primary ? env : {};
+  const baseUrl = (o.AI_BASE_URL || preset.baseUrl || "").replace(/\/+$/, "");
+  let model = o.AI_TEXT_MODEL || preset.defaultModel;
+  let fallbackModels = o.AI_TEXT_FALLBACK_MODELS
+    ? o.AI_TEXT_FALLBACK_MODELS.split(",").map((m) => m.trim()).filter(Boolean)
+    : o.AI_TEXT_MODEL
       ? []
       : (preset.fallbackModels ?? []);
-  const apiKey = (preset.keyEnv && env[preset.keyEnv]) || env.AI_API_KEY || undefined;
   const missing = [];
+  let paidRejected = false;
+  if (preset.freeOnly) {
+    fallbackModels = fallbackModels.filter(isFree);
+    if (model && !isFree(model)) {
+      paidRejected = true;
+      model = null;
+    }
+  }
+  const apiKey = (preset.keyEnv && env[preset.keyEnv]) || o.AI_API_KEY || undefined;
   if (!baseUrl) missing.push("AI_BASE_URL");
-  if (!model) missing.push("AI_TEXT_MODEL");
+  if (paidRejected) missing.push(`a free model id ending in ":free" for ${provider} (paid models are disabled)`);
+  else if (!model) missing.push("AI_TEXT_MODEL");
   if (preset.requiresKey && !apiKey) missing.push(preset.keyEnv);
   return { name: provider, label: preset.label, baseUrl, model, fallbackModels: fallbackModels.filter((m) => m !== model), apiKey, missing };
+}
+
+/** Parses AI_TEXT_FALLBACK_PROVIDERS (comma list of OpenAI-compatible presets, excluding the primary). */
+export function parseFallbackProviders(value, primary) {
+  return [...new Set(String(value ?? "").split(",").map((s) => s.trim()).filter(Boolean))].filter((p) => p !== primary && OPENAI_COMPATIBLE_PROVIDERS.includes(p));
 }

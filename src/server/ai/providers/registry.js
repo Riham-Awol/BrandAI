@@ -3,7 +3,8 @@ import { getEnv } from "../../config/env.js";
 import { Errors } from "../../errors.js";
 import { createAnthropicTextProvider } from "./anthropic.js";
 import { createOpenAICompatibleTextProvider } from "./openai-compatible.js";
-import { OPENAI_COMPATIBLE_PROVIDERS, resolvePreset } from "./presets.js";
+import { OPENAI_COMPATIBLE_PROVIDERS, parseFallbackProviders, resolvePreset } from "./presets.js";
+import { createFallbackTextProvider } from "./fallback.js";
 import { createMockImageProvider, createMockTextProvider } from "./mock.js";
 import { mockFixtureResponder } from "./mock-fixtures.js";
 
@@ -20,7 +21,11 @@ export function getTextProvider() {
   if (overrides.text) return overrides.text;
   const env = getEnv();
   if (OPENAI_COMPATIBLE_PROVIDERS.includes(env.AI_TEXT_PROVIDER)) {
-    return createOpenAICompatibleTextProvider(resolvePreset(env.AI_TEXT_PROVIDER, env));
+    const primary = createOpenAICompatibleTextProvider(resolvePreset(env.AI_TEXT_PROVIDER, env));
+    const fallbacks = parseFallbackProviders(env.AI_TEXT_FALLBACK_PROVIDERS, env.AI_TEXT_PROVIDER).map((name) =>
+      createOpenAICompatibleTextProvider(resolvePreset(name, env, { primary: false })),
+    );
+    return fallbacks.length ? createFallbackTextProvider([primary, ...fallbacks]) : primary;
   }
   switch (env.AI_TEXT_PROVIDER) {
     case "anthropic":
