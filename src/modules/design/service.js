@@ -6,9 +6,9 @@ import { generateText } from "@/server/ai/orchestrator.js";
 import { requireWorkspaceAccess } from "@/server/permissions/authorize.js";
 import { PERMISSIONS } from "@/server/permissions/roles.js";
 import { findScopedBusiness } from "@/server/businesses/service.js";
-import { getStorage } from "@/server/storage/index.js";
-import { detectMimeType } from "@/server/storage/file-validation.js";
-import { DEFAULT_BRAND, renderDesignSvg } from "@/server/design/renderer.js";
+import { findBusinessImage, listBusinessImages, readBusinessImage } from "@/server/storage/business-images.js";
+import { resolveBrand } from "@/server/brand/approved-brand.js";
+import { renderDesignSvg } from "@/server/design/renderer.js";
 import { uuidSchema } from "@/validation/common.js";
 import { DESIGN_FORMATS, DESIGN_KINDS, POST_FORMAT_TO_DESIGN } from "./catalog.js";
 import { diversifyTemplates, ensurePhotoLayout, normalizeSpec } from "./spec-utils.js";
@@ -16,29 +16,11 @@ import { designOptionsSchema, designSpecSchema } from "./schemas.js";
 import { designInput, designInstructions } from "./prompts.js";
 import "./mock-fixtures.js";
 
-const IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-
 const designSelect = {
   id: true, businessId: true, kind: true, format: true, name: true, brief: true, spec: true, imageFileId: true,
   sourcePostId: true, version: true, isMock: true, createdAt: true, updatedAt: true,
   business: { select: { id: true, name: true } },
 };
-
-/** Brand used for rendering: the approved identity, else a neutral default. */
-export async function resolveBrand(businessId, business) {
-  const identity = await prisma.brandIdentity.findFirst({ where: { businessId, status: "APPROVED" }, orderBy: { version: "desc" }, select: { data: true } });
-  const data = identity?.data;
-  if (!data?.palette) return { ...DEFAULT_BRAND, name: business.name, approved: false };
-  return {
-    name: data.businessName || business.name,
-    colors: { ...DEFAULT_BRAND.colors, ...data.palette.colors },
-    heading: data.typography?.heading ?? DEFAULT_BRAND.heading,
-    body: data.typography?.body ?? DEFAULT_BRAND.body,
-    logo: data.logo ?? null,
-    approved: true,
-  };
-}
 
 function assertFormat(kind, format) {
   if (!DESIGN_KINDS[kind].formats.includes(format)) throw Errors.validation({ format: [`This size is not available for a ${DESIGN_KINDS[kind].label.toLowerCase()}.`] });
@@ -47,15 +29,8 @@ function assertFormat(kind, format) {
 /** Loads a business image (uploaded brand asset) as a data URI; rejects other businesses/workspaces. */
 async function loadImage(scope, businessId, fileId) {
   if (!fileId) return null;
-  if (!uuidSchema.safeParse(fileId).success) throw Errors.notFound();
-  const file = await prisma.storedFile.findFirst({ where: { id: fileId, workspaceId: scope.workspaceId, businessId, deletedAt: null } });
-  if (!file) throw Errors.validation({ imageFileId: ["Choose an image from this business's brand assets."] });
-  if (!IMAGE_TYPES.includes(file.mimeType) || file.sizeBytes > MAX_IMAGE_BYTES) throw Errors.validation({ imageFileId: ["Use a PNG, JPEG, GIF or WebP image up to 5 MB."] });
-  const object = await getStorage().get(file.objectKey);
-  if (!object) throw Errors.notFound();
-  const body = Buffer.from(object.body);
-  const mime = detectMimeType(body);
-  if (!IMAGE_TYPES.includes(mime)) throw Errors.validation({ imageFileId: ["The stored file is not a supported image."] });
+  const file = await findBusinessImage(scope.workspaceId, businessId, fileId);
+  const { body, mime } = await readBusinessImage(file);
   return `data:${mime};base64,${body.toString("base64")}`;
 }
 
@@ -81,12 +56,7 @@ async function findSourcePost(scope, businessId, postId) {
 export async function listDesignImages(user, workspaceId, businessId) {
   const scope = await requireWorkspaceAccess(user, workspaceId, PERMISSIONS.BUSINESS_READ);
   await findScopedBusiness(scope, businessId);
-  const assets = await prisma.brandAsset.findMany({
-    where: { workspaceId: scope.workspaceId, businessId, deletedAt: null, storedFile: { mimeType: { in: IMAGE_TYPES }, deletedAt: null } },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, name: true, storedFile: { select: { id: true, originalName: true } } },
-  });
-  return assets.map((a) => ({ fileId: a.storedFile.id, name: a.name }));
+  return listBusinessImages(scope, businessId);
 }
 
 /** Pre-fill for "Design this post" (Phase 4 → Phase 5). */

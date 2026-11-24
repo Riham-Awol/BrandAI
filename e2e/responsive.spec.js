@@ -90,3 +90,19 @@ test("mobile layout: design options and editor fit the screen", async ({ page })
   overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test("mobile layout: website editor and published site fit the screen", async ({ page }) => {
+  await registerViaUi(page, newUser());
+  await page.goto("/websites/new");
+  await page.getByLabel("Business name").fill("Mobile Site");
+  await page.getByRole("button", { name: "Start from template" }).click();
+  await expect(page.getByTestId("site-preview")).toBeVisible();
+  let overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+  await page.getByRole("button", { name: "Publish" }).click();
+  await expect(page.getByText("Published. Your website is live.")).toBeVisible();
+  await page.goto(await page.getByRole("link", { name: "View live site" }).getAttribute("href"));
+  await expect(page.getByRole("heading", { level: 1, name: "Welcome to Mobile Site" })).toBeVisible();
+  overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+});

@@ -1,6 +1,9 @@
 /** Empties every application table in the TEST database (guarded by load-test-env). */
 const TABLES = [
-  "design_revisions", "designs",
+  "design_revisions",
+  "website_submissions",
+  "website_versions",
+  "websites", "designs",
   "social_post_revisions", "social_posts",
   "marketing_plans",
   "brand_assets", "brand_identities", "storage_objects",

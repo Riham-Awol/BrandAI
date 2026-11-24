@@ -95,20 +95,22 @@ model Workspace {
   updatedAt DateTime      @updatedAt @map("updated_at")
   deletedAt DateTime?     @map("deleted_at")
 
-  owner           User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  members         WorkspaceMember[]
-  businesses      Business[]
-  aiGenerations   AiGeneration[]
-  aiUsageRecords  AiUsageRecord[]
-  usageLimits     UsageLimit[]
-  storedFiles     StoredFile[]
-  notifications   Notification[]
-  auditLogs       AuditLog[]
-  projects        Project[]
-  brandIdentities BrandIdentity[]
-  brandAssets     BrandAsset[]
-  marketingPlans  MarketingPlan[]
-  designs         Design[]
+  owner              User                @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  members            WorkspaceMember[]
+  businesses         Business[]
+  aiGenerations      AiGeneration[]
+  aiUsageRecords     AiUsageRecord[]
+  usageLimits        UsageLimit[]
+  storedFiles        StoredFile[]
+  notifications      Notification[]
+  auditLogs          AuditLog[]
+  projects           Project[]
+  brandIdentities    BrandIdentity[]
+  brandAssets        BrandAsset[]
+  marketingPlans     MarketingPlan[]
+  designs            Design[]
+  websites           Website[]
+  websiteSubmissions WebsiteSubmission[]
 
   @@index([ownerId])
   @@index([deletedAt])
@@ -187,6 +189,7 @@ model Business {
   competitors     Competitor[]
   goals           BusinessGoal[]
   designs         Design[]
+  websites        Website[]
 
   @@index([workspaceId, deletedAt])
   @@index([createdById])
@@ -862,4 +865,99 @@ model DesignRevision {
 
   @@unique([designId, version])
   @@map("design_revisions")
+}
+
+// ── Phase 6: Website Builder ────────────────────────────────────────────────
+
+enum WebsiteType {
+  BUSINESS
+  LANDING
+  PORTFOLIO
+  STORE
+}
+
+enum WebsiteStatus {
+  DRAFT
+  PUBLISHED
+  UNPUBLISHED
+}
+
+enum DomainStatus {
+  PENDING
+  VERIFIED
+  FAILED
+}
+
+// A business website. `config` is the editable draft (pages → sections of
+// whitelisted types). Publishing snapshots config + brand into website_versions;
+// the public site renders only the published snapshot.
+model Website {
+  id               String        @id @default(uuid()) @db.Char(36)
+  workspaceId      String        @map("workspace_id") @db.Char(36)
+  businessId       String        @map("business_id") @db.Char(36)
+  type             WebsiteType
+  name             String        @db.VarChar(160)
+  slug             String        @unique @db.VarChar(63)
+  status           WebsiteStatus @default(DRAFT)
+  config           Json
+  draftRevision    Int           @default(1) @map("draft_revision")
+  publishedVersion Int?          @map("published_version")
+  publishedAt      DateTime?     @map("published_at")
+  customDomain     String?       @unique @map("custom_domain") @db.VarChar(253)
+  domainStatus     DomainStatus? @map("domain_status")
+  domainToken      String?       @map("domain_token") @db.Char(32)
+  domainCheckedAt  DateTime?     @map("domain_checked_at")
+  isMock           Boolean       @default(false) @map("is_mock")
+  createdById      String        @map("created_by_id") @db.Char(36)
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  deletedAt        DateTime?     @map("deleted_at")
+
+  workspace   Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  business    Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  versions    WebsiteVersion[]
+  submissions WebsiteSubmission[]
+
+  @@index([workspaceId, deletedAt])
+  @@index([businessId])
+  @@map("websites")
+}
+
+model WebsiteVersion {
+  id            String   @id @default(uuid()) @db.Char(36)
+  websiteId     String   @map("website_id") @db.Char(36)
+  version       Int
+  config        Json
+  brand         Json
+  publishedById String   @map("published_by_id") @db.Char(36)
+  publishedAt   DateTime @default(now()) @map("published_at")
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@unique([websiteId, version])
+  @@map("website_versions")
+}
+
+// Contact / order enquiries sent from a published site's form.
+model WebsiteSubmission {
+  id          String    @id @default(uuid()) @db.Char(36)
+  websiteId   String    @map("website_id") @db.Char(36)
+  workspaceId String    @map("workspace_id") @db.Char(36)
+  kind        String    @db.VarChar(20)
+  name        String    @db.VarChar(120)
+  email       String    @db.VarChar(254)
+  phone       String?   @db.VarChar(40)
+  message     String    @db.Text
+  item        String?   @db.VarChar(200)
+  pagePath    String    @map("page_path") @db.VarChar(200)
+  ipHash      String    @map("ip_hash") @db.Char(64)
+  readAt      DateTime? @map("read_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  website   Website   @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([websiteId, createdAt])
+  @@index([workspaceId])
+  @@map("website_submissions")
 }

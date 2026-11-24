@@ -24,6 +24,8 @@ export const PERMISSIONS = {
   USAGE_READ: "usage:read",
   AUDIT_READ: "audit:read",
   BILLING_MANAGE: "billing:manage",
+  // Phase 6: publishing a website and connecting domains are public, outward-facing actions.
+  WEBSITE_PUBLISH: "website:publish",
 };
 
 const P = PERMISSIONS;
@@ -38,6 +40,7 @@ const ADMIN = [
   P.CONTEXT_APPROVE,
   P.FILES_DELETE,
   P.AUDIT_READ,
+  P.WEBSITE_PUBLISH,
 ];
 const OWNER = [...ADMIN, P.WORKSPACE_DELETE, P.BILLING_MANAGE];
 

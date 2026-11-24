@@ -152,6 +152,31 @@ formats allowed per kind in `src/modules/design/catalog.js`; spec schema in `src
 
 Images must be PNG/JPEG/GIF/WebP files of the **same business** (422 otherwise); sizes outside the kind → 422.
 
+### Website Builder (Phase 6)
+Base: `/workspaces/:workspaceId/websites`. Config schema: `siteConfigSchema` in `src/modules/website/schemas.js`.
+
+| Method | Path | Permission | Body / notes |
+|---|---|---|---|
+| GET / POST | `/` | `business:read` / `business:update` (+ `ai:generate` when generating) | POST `{ businessId, type: BUSINESS\|LANDING\|PORTFOLIO\|STORE, theme: modern\|classic\|bold, brief?, generate }` |
+| GET / PATCH / DELETE | `/:websiteId` | read / `business:update` / `business:delete` | PATCH `{ name?, slug?, config?, baseRevision? }` → 409 when `baseRevision` is stale; images must be the business's image assets |
+| POST | `/:websiteId/sections/regenerate` | `ai:generate` + `business:update` | `{ pageSlug, sectionId, instructions? }` (not for testimonials) |
+| GET / POST | `/:websiteId/publish` | read / `website:publish` | GET lists published versions; POST publishes the draft as a new version |
+| POST | `/:websiteId/unpublish` | `website:publish` | takes the site offline |
+| POST | `/:websiteId/versions/:version` | `business:update` | copies a published version into the draft |
+| PUT / DELETE | `/:websiteId/domain` | `website:publish` | PUT `{ domain }` → DNS records (CNAME + TXT) |
+| POST | `/:websiteId/domain/verify` | `website:publish` | checks the TXT record → VERIFIED / FAILED |
+| GET | `/:websiteId/messages` | `business:update` | contact/order messages |
+| PATCH / DELETE | `/:websiteId/messages/:messageId` | `business:update` | PATCH `{ read }` |
+| GET | `/:websiteId/media/:fileId` | `business:read` | business image for the editor preview |
+
+Public (no login):
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/sites/:slug[/:page]` (page) | published snapshot only; verified custom domains are rewritten here by the proxy |
+| POST | `/api/v1/sites/:site/contact` | form-encoded `{ name, email, phone?, message, kind, item?, page, website (honeypot) }` → 303 back with `?sent=1` / `?error=1`; rate limit `siteForm` (5 / 10 min / IP) |
+| GET | `/api/v1/sites/:site/media/:fileId` | images referenced by the published version only |
+
 ### Brand hub & assets (Phase 2)
 | Method | Path | Permission | Notes |
 |---|---|---|---|
@@ -166,6 +191,9 @@ Context sections: `basics`, `offering`, `audience`, `goals`, `competitors`,
 `brandIdentity`, `brandVoice`, `marketingPreferences`.
 
 ## Roles → permissions
+
+`website:publish` (Phase 6): OWNER, ADMIN — publish/unpublish websites and manage custom domains.
+
 | Permission | VIEWER | EDITOR | ADMIN | OWNER |
 |---|:-:|:-:|:-:|:-:|
 | workspace:read, members:read, business:read | ✓ | ✓ | ✓ | ✓ |

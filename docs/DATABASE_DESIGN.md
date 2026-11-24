@@ -11,6 +11,7 @@ Schema: [`prisma/schema.prisma`](../prisma/schema.prisma) · Migrations: `prisma
 | Migration | Phase | Summary |
 |---|---|---|
 | `20261124114911_init_foundation` | 0 | Foundation tables below |
+| `20261124172827_phase6_website_builder` | 6 | `websites`, `website_versions`, `website_submissions`; enums `WebsiteType`, `WebsiteStatus`, `DomainStatus` |
 | `20261124165358_phase5_design_studio` | 5 | `designs`, `design_revisions`; enum `DesignKind` |
 | `20261124163027_phase4_social_studio` | 4 | `ProjectType.SOCIAL_STUDIO`; `social_posts`, `social_post_revisions` |
 | `20261124134716_phase3_strategy_studio` | 3 | `ProjectType.STRATEGY_STUDIO`; `marketing_plans` |
@@ -69,6 +70,9 @@ businesses 1─* business_products | business_services | business_locations | bu
 | `marketing_plans` *(P3)* | Immutable approved marketing plans (`data` JSON: settings, all section contents, computed budget), `status` APPROVED/SUPERSEDED, `version`, approver | unique (`business_id`,`version`); idx (`business_id`,`status`) | cascade with business |
 
 | `social_posts` *(P4)* | Planned/written post: `scheduled_date` (DATE), `platform`, `format`, pillar, title, objective, `is_promotion`, `status` IDEA/DRAFT/READY, current `content` JSON, `version`, `is_mock`, source `calendar_output_id` | idx (`project_id`,`scheduled_date`), (`workspace_id`,`deleted_at`), `business_id` | soft delete |
+| `websites` *(P6)* | Website per business: `type`, `name`, unique `slug`, `status` DRAFT/PUBLISHED/UNPUBLISHED, draft `config` JSON, `draft_revision` (optimistic concurrency), `published_version`, unique `custom_domain` + `domain_status`/`domain_token`, `is_mock` | idx (`workspace_id`,`deleted_at`), `business_id` | soft delete (slug/domain released) |
+| `website_versions` *(P6)* | Immutable published snapshot: `config` + resolved `brand` (incl. vector logo) | unique (`website_id`,`version`) | cascade with website |
+| `website_submissions` *(P6)* | Contact/order messages from a published site (`kind`, name, email, phone, message, item, page, salted `ip_hash`, `read_at`) | idx (`website_id`,`created_at`), `workspace_id` | cascade; deletable by editors |
 | `designs` *(P5)* | Saved design: `kind`, `format`, `name`, `brief` JSON, current `spec` JSON, `image_file_id`, `source_post_id`, `version`, `is_mock` | idx (`workspace_id`,`deleted_at`), (`business_id`,`kind`) | soft delete |
 | `design_revisions` *(P5)* | Every visual version of a design (`version`, `format`, `spec`, `image_file_id`) | unique (`design_id`,`version`) | cascade with design |
 | `social_post_revisions` *(P4)* | Every AI write or user edit of a post (`version`, `source` AI/EDIT, `content`, feedback, generation link) | unique (`post_id`,`version`) | cascade with post |

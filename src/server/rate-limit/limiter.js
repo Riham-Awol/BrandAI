@@ -28,4 +28,7 @@ export const RATE_LIMITS = {
   passwordReset: { limit: 10, windowMs: 60 * 60 * 1000 },
   api: { limit: 120, windowMs: 60 * 1000 },
   aiGenerate: { limit: 20, windowMs: 60 * 1000 },
+  // Public website forms: per visitor IP.
+  siteForm: { limit: 5, windowMs: 10 * 60 * 1000 },
+  siteMedia: { limit: 300, windowMs: 60 * 1000 },
 };

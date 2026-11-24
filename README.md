@@ -6,7 +6,7 @@ An AI-powered business launch, branding, marketing, design and growth platform.
 Users describe their business once; Brand AI reuses that **approved business
 context** across every studio.
 
-> **Status:** Phase 5 (Creative Design Studio) complete and awaiting approval.
+> **Status:** Phase 6 (Website Builder) complete and awaiting approval.
 > See [docs/PHASE_STATUS.md](docs/PHASE_STATUS.md).
 
 ## Available today
@@ -28,6 +28,9 @@ context** across every studio.
   three AI options per brief drawn as vector art with your approved logo, colours and fonts; editable
   templates with live preview, versions, and SVG / PNG (300 dpi) / print-to-PDF export. "Design this post"
   links it to the Social Media Studio.
+- **Website Builder** (`/websites`): business sites, landing pages, portfolios and online stores written from
+  your profile (or started from a template), edited with a live desktop/phone preview, published at
+  `/sites/:slug` or your own domain (DNS-verified), with working contact and order-enquiry forms.
 
 **AI is free by default.** Brand AI uses Google Gemini's free tier (`AI_TEXT_PROVIDER=gemini`). Get a free
 key at https://aistudio.google.com/apikey and set `GEMINI_API_KEY`. Other free options: Groq, OpenRouter free

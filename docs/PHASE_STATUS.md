@@ -7,10 +7,11 @@
 | 2 — Brand Identity Studio | APPROVED | ☑ |
 | 3 — Marketing Strategy Studio | APPROVED | ☑ |
 | 4 — Social Media Studio | APPROVED | ☑ |
-| 5 — Creative Design Studio | **COMPLETE — awaiting approval** | ☐ |
-| 6–10 | NOT STARTED | ☐ |
+| 5 — Creative Design Studio | APPROVED | ☑ |
+| 6 — Website Builder | **COMPLETE — awaiting approval** | ☐ |
+| 7–10 | NOT STARTED | ☐ |
 
-**Current phase:** 5 (Creative Design Studio) · **Last updated:** 2026-11-24
+**Current phase:** 6 (Website Builder) · **Last updated:** 2026-11-24
 
 **Second free AI provider — done (2026-11-24, ADR 011):** OpenRouter free models are configured as a fallback
 (`AI_TEXT_FALLBACK_PROVIDERS=openrouter`); verified live (Gemini failed → OpenRouter answered a design request
@@ -19,7 +20,57 @@ same way later (`openrouter,groq`).
 
 ---
 
-## Phase 5 — Creative Design Studio
+## Phase 6 — Website Builder
+
+Plan and acceptance criteria: [phases/PHASE_6.md](./phases/PHASE_6.md)
+
+### Implemented and verified
+- `/websites` list, `/websites/new` (type, style, brief; AI or template), `/websites/:id` editor (content with
+  live desktop/phone preview, settings, publish & domain, messages), public sites at `/sites/:slug[/:page]` and
+  on verified custom domains (proxy host rewrite).
+- Structured site configs rendered by controlled components only; per-section AI rewrite; versioned publishing;
+  contact/order forms with inbox + notifications; DNS-verified custom domains; new `website:publish` permission.
+- Shared helpers moved to `src/server`: `brand/approved-brand.js` (approved brand + vector logo) and
+  `storage/business-images.js` (business image assets), now used by Design and Website studios.
+
+### Tests (all passing)
+| Suite | Count |
+|---|---|
+| Unit | 132 (Phase 5: 111, + AI fallback tests) |
+| Integration (MySQL + mock provider) | 99 (Phase 5: 91) |
+| End-to-end (desktop + mobile) | 31 (Phase 5: 28) |
+`npm run lint`, `npm run build` pass; all Phase 0–5 suites pass.
+
+### Live verification (2026-11-24, free AI)
+- A complete business website was written by real AI: Gemini's free models were busy (503/429), the new
+  fallback switched to OpenRouter `nvidia/nemotron-3-ultra-550b-a55b:free`, which wrote all four pages in 89 s.
+  Published and viewed on desktop and phone.
+- Findings fixed: navigation used the AI's long SEO-style page title (now standard page names, AI wording goes
+  to SEO); the model added unconfirmed specifics (durations, group sizes, opening days) despite instructions —
+  prompt tightened and a "check the facts before you publish" notice added for unpublished AI sites.
+
+### Defects found and fixed during the phase
+- Public site read the clock and DB during prerender (Cache Components) → `connection()` + publish-year prop.
+- Product order links, page links and anchors verified for both `/sites/:slug` and custom-domain bases.
+- e2e isolation: tests no longer depend on fixed slugs/domains in the shared database.
+
+### Known limitations
+- Unknown public pages show the not-found page with `noindex` but HTTP 200: with Cache Components the response
+  starts streaming before the request-time lookup (documented Next.js behaviour). A true 404 would need a DB
+  lookup in the proxy.
+- HTTPS for custom domains is issued by the hosting platform (e.g. Vercel domains, Caddy on-demand TLS); Brand AI
+  verifies ownership and routes the host. Wildcard subdomains (`slug.yourbrand.site`) are not set up.
+- No card payments, carts or stock (payment providers are paid services; Phase 10). Orders are enquiries.
+- No visitor analytics yet (Phase 9). Forms are rate-limited; a returned JSON 429 is shown to bots/spammers.
+- Fixed section components (no freehand layout); bundled fonts are Latin-only.
+
+### Handover to Phase 7 (Stationery & Merchandise)
+- Reuse `resolveBrand`/`resolveSiteBrand`, the design renderer and text helpers for business cards, letterheads
+  and labels; contact details live in each website's config today — Phase 7 may promote them to the profile.
+
+---
+
+## Phase 5 — Creative Design Studio (APPROVED)
 
 Plan and acceptance criteria: [phases/PHASE_5.md](./phases/PHASE_5.md)
 
