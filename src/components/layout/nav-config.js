@@ -11,4 +11,5 @@ export const STUDIO_NAV = PRODUCT_PHASES.filter((p) => ICONS[p.key]).map((p) => 
   icon: ICONS[p.key],
   phase: p.phase,
   available: p.available,
+  href: p.href,
 }));

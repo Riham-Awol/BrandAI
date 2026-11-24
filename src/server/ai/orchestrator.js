@@ -64,7 +64,7 @@ export async function generateText({ user, workspaceId, businessId, module, task
 
   const started = Date.now();
   try {
-    const result = await provider.generate({ system, prompt, schema, model, effort, maxTokens });
+    const result = await provider.generate({ system, prompt, schema, model, effort, maxTokens, module, task });
     if (schema) {
       const check = schema.safeParse(result.data);
       if (!check.success) throw new AppError("AI_INVALID_OUTPUT", "The AI returned an unexpected format. Please try again.", 502);

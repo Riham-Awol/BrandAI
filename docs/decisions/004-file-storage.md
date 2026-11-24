@@ -8,4 +8,4 @@ magic-byte validation. A Cloudinary adapter can be added in Phase 2/5 if on-the-
 transforms are needed. No local-filesystem persistence (Vercel's FS is ephemeral).
 **Consequences.** Provider choice (recommended: Cloudflare R2) and credentials are needed
 before Phase 2. Until then uploads return `SERVICE_NOT_CONFIGURED`.
-**Status.** Proposed — provider/account choice needs approval (paid service).
+**Status.** Accepted (approved with Phase 0, 2026-11-24).

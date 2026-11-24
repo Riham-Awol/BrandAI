@@ -26,6 +26,7 @@ export default defineConfig({
         url: `${baseURL}/api/v1/health`,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
-        env: { RATE_LIMIT_STORE: "memory", NEXTAUTH_URL: baseURL, APP_URL: baseURL },
+        // The test-only mock AI provider lets e2e drive AI features without a paid API.
+        env: { RATE_LIMIT_STORE: "memory", NEXTAUTH_URL: baseURL, APP_URL: baseURL, AI_TEXT_PROVIDER: "mock", AI_ALLOW_MOCK: "true" },
       },
 });

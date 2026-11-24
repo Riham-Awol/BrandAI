@@ -3,6 +3,7 @@ import { getEnv } from "../../config/env.js";
 import { Errors } from "../../errors.js";
 import { createAnthropicTextProvider } from "./anthropic.js";
 import { createMockImageProvider, createMockTextProvider } from "./mock.js";
+import { mockFixtureResponder } from "./mock-fixtures.js";
 
 /**
  * Provider registry. Modules never import a provider directly; they ask the
@@ -21,7 +22,7 @@ export function getTextProvider() {
       return createAnthropicTextProvider({ apiKey: env.ANTHROPIC_API_KEY, defaultModel: env.AI_TEXT_MODEL });
     case "mock":
       if (env.AI_ALLOW_MOCK !== "true") throw Errors.notConfigured("Mock AI (set AI_ALLOW_MOCK=true outside production)");
-      return createMockTextProvider();
+      return createMockTextProvider({ responder: mockFixtureResponder });
     default:
       throw Errors.notConfigured("AI text generation");
   }

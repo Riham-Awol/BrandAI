@@ -11,6 +11,7 @@ Schema: [`prisma/schema.prisma`](../prisma/schema.prisma) · Migrations: `prisma
 | Migration | Phase | Summary |
 |---|---|---|
 | `20261124114911_init_foundation` | 0 | Foundation tables below |
+| `20261124121713_phase1_launch_studio` | 1 | `projects`, `project_outputs`, business profile tables; `businesses.value_proposition`, `businesses.business_model` |
 
 ## Entity relationships
 
@@ -25,6 +26,10 @@ users 1─* workspace_members *─1 workspaces 1─* businesses 1─* business_c
   │                                   └─* audit_logs
   └─* auth_tokens
 rate_limit_buckets (standalone)
+
+businesses 1─* projects 1─* project_outputs *─1 ai_generations (optional)
+businesses 1─* business_products | business_services | business_locations | business_audiences
+           1─* business_customer_problems | competitors | business_goals
 ```
 
 ## Tables
@@ -44,8 +49,24 @@ rate_limit_buckets (standalone)
 | `notifications` | In-app notifications | idx (`user_id`,`read_at`) | cascade |
 | `audit_logs` | Security/business audit trail (actor, action, entity, metadata, ip, UA) | idx (`workspace_id`,`created_at`), (`actor_id`,`created_at`), `action` | kept; FKs `SET NULL` |
 | `rate_limit_buckets` | Fixed-window counters shared across instances | PK `key`; idx `reset_at` | expired rows overwritten |
+| `projects` *(P1)* | A studio session for a business (`type` LAUNCH_STUDIO; later studios add types). `input` JSON = idea input | idx (`workspace_id`,`deleted_at`), (`business_id`,`type`) | soft delete |
+| `project_outputs` *(P1)* | Append-only versions of a section's output: `section`, `version`, `source` AI/EDIT, `content` JSON, `state` JSON (user progress e.g. checklist), `is_accepted`, `is_mock`, `feedback`, `generation_id` | unique (`project_id`,`section`,`version`); idx (`project_id`,`section`,`is_accepted`) | cascade with project |
+| `business_products`, `business_services` *(P1)* | Offering: name, description, price range, order | idx (`business_id`,`sort_order`) | cascade with business |
+| `business_locations` *(P1)* | label, city, region, country, `is_primary`, `is_online` | idx `business_id` | cascade |
+| `business_audiences` *(P1)* | Segments: name, description, demographics, needs, `is_primary` | idx (`business_id`,`sort_order`) | cascade |
+| `business_customer_problems` *(P1)* | problem, solution, severity | idx (`business_id`,`sort_order`) | cascade |
+| `competitors` *(P1)* | name, website, description, strengths, weaknesses | idx (`business_id`,`sort_order`) | cascade |
+| `business_goals` *(P1)* | title, description, timeframe, metric | idx (`business_id`,`sort_order`) | cascade |
+
+Profile tables carry `business_id` only (no `workspace_id`): they are reached exclusively through an
+authorized, workspace-scoped business, so the workspace is not duplicated. At most one primary location
+and one primary audience are kept (enforced by the profile service).
 
 ## Versioning
+`project_outputs` is append-only per (project, section): every AI generation and every user edit
+creates a new version; one version per section may be accepted. The accepted version (else the latest)
+is the "active" one fed into later sections and the profile builder.
+
 `business_context_versions` is append-only per business (`version` increments).
 One DRAFT may be open; approval marks it APPROVED and the previous APPROVED as
 SUPERSEDED. Generations reference the context version they used.
@@ -53,8 +74,6 @@ SUPERSEDED. Generations reference the context version they used.
 ## Tables from the master spec deferred to their phase
 | Table | Phase | Reason |
 |---|---|---|
-| `business_products`, `business_services`, `business_locations`, `business_audiences`, `competitors`, `business_goals` | 1 | Shape is defined by the Launch Studio flows |
-| `projects` | 1 | Defined with the guided journey |
 | `brand_identities`, `brand_assets` | 2 | Brand Identity Studio (`brand_assets` will reference `stored_files`) |
 | `integrations` (encrypted credentials) | 8 | Social/email integrations |
 | `subscriptions` | 10 | Payment provider not yet selected |

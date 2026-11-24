@@ -6,8 +6,8 @@ the previous one passes its acceptance criteria and is approved (see
 
 | Phase | Module (`src/modules/…`) | Main output | Depends on |
 |---|---|---|---|
-| 0 | Foundation (initialization) | Auth, workspaces, isolation, DB, AI/storage abstractions, design system, tests | — |
-| 1 | AI Business Launch Studio (`launch`) | Structured business profile + launch plan | 0 |
+| 0 ✅ | Foundation (initialization) | Auth, workspaces, isolation, DB, AI/storage abstractions, design system, tests | — |
+| 1 🟡 | AI Business Launch Studio (`launch`) | Structured business profile + launch plan | 0 |
 | 2 | AI Brand Identity Studio (`brand`) | Approved, reusable brand identity | 1 (business context) |
 | 3 | AI Marketing Strategy Studio (`strategy`) | Complete marketing strategy | 1, 2 |
 | 4 | AI Social Media Studio (`social`) | Ready-to-use social content | 2, 3 |
@@ -17,6 +17,8 @@ the previous one passes its acceptance criteria and is approved (see
 | 8 | Marketing Calendar & Automation (`automation`) | Permission-based automation workflow (draft-only / approval-required / authorized-with-limits) | 4, 5; introduces Redis + BullMQ |
 | 9 | Analytics & Business Intelligence (`analytics`) | Actionable insights and reports | 4, 6, 8 (integrations) |
 | 10 | SaaS Administration & Production Launch (`admin`) | Production-ready commercial SaaS | all |
+
+✅ approved · 🟡 complete, awaiting approval
 
 ## Cross-phase rules
 

@@ -1,5 +1,7 @@
 /** Empties every application table in the TEST database (guarded by load-test-env). */
 const TABLES = [
+  "project_outputs", "projects", "business_products", "business_services", "business_locations",
+  "business_audiences", "business_customer_problems", "competitors", "business_goals",
   "ai_usage_records", "ai_generations", "business_context_versions", "stored_files", "businesses",
   "notifications", "audit_logs", "usage_limits", "workspace_members", "workspaces", "auth_tokens", "users", "rate_limit_buckets",
 ];

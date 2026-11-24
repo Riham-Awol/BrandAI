@@ -20,4 +20,4 @@ session (`session_version`). Rule 16 (no paid service without approval) also fav
 **Consequences.** We own the reset/lockout code (covered by integration tests). OAuth
 (Google/Microsoft) can be added as providers. MFA and email verification are future work.
 If Clerk is preferred, only `src/server/auth/*` and the auth pages change.
-**Status.** Proposed — awaiting approval.
+**Status.** Accepted (approved with Phase 0, 2026-11-24).

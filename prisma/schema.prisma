@@ -42,6 +42,8 @@ model User {
   storedFiles       StoredFile[]
   notifications     Notification[]
   auditLogs         AuditLog[]
+  projectsCreated   Project[]                @relation("ProjectCreatedBy")
+  projectOutputs    ProjectOutput[]
 
   @@index([deletedAt])
   @@map("users")
@@ -97,6 +99,7 @@ model Workspace {
   storedFiles    StoredFile[]
   notifications  Notification[]
   auditLogs      AuditLog[]
+  projects       Project[]
 
   @@index([ownerId])
   @@index([deletedAt])
@@ -144,23 +147,33 @@ enum BusinessStatus {
 }
 
 model Business {
-  id          String         @id @default(uuid()) @db.Char(36)
-  workspaceId String         @map("workspace_id") @db.Char(36)
-  name        String         @db.VarChar(160)
-  industry    String?        @db.VarChar(120)
-  description String?        @db.Text
-  stage       BusinessStage  @default(IDEA)
-  status      BusinessStatus @default(DRAFT)
-  createdById String         @map("created_by_id") @db.Char(36)
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt @map("updated_at")
-  deletedAt   DateTime?      @map("deleted_at")
+  id               String         @id @default(uuid()) @db.Char(36)
+  workspaceId      String         @map("workspace_id") @db.Char(36)
+  name             String         @db.VarChar(160)
+  industry         String?        @db.VarChar(120)
+  description      String?        @db.Text
+  stage            BusinessStage  @default(IDEA)
+  status           BusinessStatus @default(DRAFT)
+  valueProposition String?        @map("value_proposition") @db.Text
+  businessModel    String?        @map("business_model") @db.Text
+  createdById      String         @map("created_by_id") @db.Char(36)
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  deletedAt        DateTime?      @map("deleted_at")
 
-  workspace       Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy       User                     @relation("BusinessCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  workspace       Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy       User                      @relation("BusinessCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   contextVersions BusinessContextVersion[]
   aiGenerations   AiGeneration[]
   storedFiles     StoredFile[]
+  projects        Project[]
+  products        BusinessProduct[]
+  services        BusinessService[]
+  locations       BusinessLocation[]
+  audiences       BusinessAudience[]
+  problems        BusinessCustomerProblem[]
+  competitors     Competitor[]
+  goals           BusinessGoal[]
 
   @@index([workspaceId, deletedAt])
   @@index([createdById])
@@ -188,9 +201,9 @@ model BusinessContextVersion {
   approvedAt       DateTime?            @map("approved_at")
   createdAt        DateTime             @default(now()) @map("created_at")
 
-  business   Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  createdBy  User           @relation("ContextCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  approvedBy User?          @relation("ContextApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  business    Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdBy   User           @relation("ContextCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  approvedBy  User?          @relation("ContextApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
   generations AiGeneration[]
 
   @@unique([businessId, version])
@@ -238,6 +251,7 @@ model AiGeneration {
   user           User                    @relation(fields: [userId], references: [id], onDelete: Restrict)
   contextVersion BusinessContextVersion? @relation(fields: [contextVersionId], references: [id], onDelete: SetNull)
   usageRecords   AiUsageRecord[]
+  projectOutputs ProjectOutput[]
 
   @@index([workspaceId, createdAt])
   @@index([businessId, module])
@@ -378,4 +392,199 @@ model RateLimitBucket {
 
   @@index([resetAt])
   @@map("rate_limit_buckets")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Phase 1 — Studio projects & versioned section outputs
+// ─────────────────────────────────────────────────────────────
+
+enum ProjectType {
+  LAUNCH_STUDIO
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+// A studio session for a business (Phase 1: Launch Studio). Later studios
+// reuse this table with their own ProjectType.
+model Project {
+  id          String        @id @default(uuid()) @db.Char(36)
+  workspaceId String        @map("workspace_id") @db.Char(36)
+  businessId  String        @map("business_id") @db.Char(36)
+  type        ProjectType
+  name        String        @db.VarChar(160)
+  status      ProjectStatus @default(ACTIVE)
+  input       Json
+  createdById String        @map("created_by_id") @db.Char(36)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  deletedAt   DateTime?     @map("deleted_at")
+
+  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  business  Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdBy User            @relation("ProjectCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  outputs   ProjectOutput[]
+
+  @@index([workspaceId, deletedAt])
+  @@index([businessId, type])
+  @@map("projects")
+}
+
+enum OutputSource {
+  AI
+  EDIT
+}
+
+// Append-only versions of one section's output. `state` holds user progress
+// (e.g. checklist ticks) that is not part of the generated content.
+model ProjectOutput {
+  id           String       @id @default(uuid()) @db.Char(36)
+  projectId    String       @map("project_id") @db.Char(36)
+  section      String       @db.VarChar(60)
+  version      Int
+  source       OutputSource
+  content      Json
+  state        Json?
+  isAccepted   Boolean      @default(false) @map("is_accepted")
+  isMock       Boolean      @default(false) @map("is_mock")
+  feedback     String?      @db.VarChar(1000)
+  generationId String?      @map("generation_id") @db.Char(36)
+  createdById  String       @map("created_by_id") @db.Char(36)
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  project    Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  generation AiGeneration? @relation(fields: [generationId], references: [id], onDelete: SetNull)
+  createdBy  User          @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([projectId, section, version])
+  @@index([projectId, section, isAccepted])
+  @@map("project_outputs")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Phase 1 — Structured business profile
+// Access is always through an authorized, workspace-scoped business.
+// ─────────────────────────────────────────────────────────────
+
+model BusinessProduct {
+  id          String   @id @default(uuid()) @db.Char(36)
+  businessId  String   @map("business_id") @db.Char(36)
+  name        String   @db.VarChar(160)
+  description String?  @db.Text
+  priceRange  String?  @map("price_range") @db.VarChar(120)
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, sortOrder])
+  @@map("business_products")
+}
+
+model BusinessService {
+  id          String   @id @default(uuid()) @db.Char(36)
+  businessId  String   @map("business_id") @db.Char(36)
+  name        String   @db.VarChar(160)
+  description String?  @db.Text
+  priceRange  String?  @map("price_range") @db.VarChar(120)
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, sortOrder])
+  @@map("business_services")
+}
+
+model BusinessLocation {
+  id         String   @id @default(uuid()) @db.Char(36)
+  businessId String   @map("business_id") @db.Char(36)
+  label      String?  @db.VarChar(120)
+  city       String?  @db.VarChar(120)
+  region     String?  @db.VarChar(120)
+  country    String   @db.VarChar(120)
+  isPrimary  Boolean  @default(false) @map("is_primary")
+  isOnline   Boolean  @default(false) @map("is_online")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@map("business_locations")
+}
+
+model BusinessAudience {
+  id           String   @id @default(uuid()) @db.Char(36)
+  businessId   String   @map("business_id") @db.Char(36)
+  name         String   @db.VarChar(160)
+  description  String?  @db.Text
+  demographics String?  @db.Text
+  needs        String?  @db.Text
+  isPrimary    Boolean  @default(false) @map("is_primary")
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, sortOrder])
+  @@map("business_audiences")
+}
+
+model BusinessCustomerProblem {
+  id         String   @id @default(uuid()) @db.Char(36)
+  businessId String   @map("business_id") @db.Char(36)
+  problem    String   @db.Text
+  solution   String?  @db.Text
+  severity   String?  @db.VarChar(20)
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, sortOrder])
+  @@map("business_customer_problems")
+}
+
+model Competitor {
+  id          String   @id @default(uuid()) @db.Char(36)
+  businessId  String   @map("business_id") @db.Char(36)
+  name        String   @db.VarChar(160)
+  website     String?  @db.VarChar(500)
+  description String?  @db.Text
+  strengths   String?  @db.Text
+  weaknesses  String?  @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, sortOrder])
+  @@map("competitors")
+}
+
+model BusinessGoal {
+  id          String   @id @default(uuid()) @db.Char(36)
+  businessId  String   @map("business_id") @db.Char(36)
+  title       String   @db.VarChar(200)
+  description String?  @db.Text
+  timeframe   String?  @db.VarChar(120)
+  metric      String?  @db.VarChar(200)
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, sortOrder])
+  @@map("business_goals")
 }

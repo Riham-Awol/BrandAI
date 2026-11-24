@@ -34,8 +34,22 @@ export function SidebarNav({ onNavigate }) {
       <div>
         <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">Studios</p>
         <ul className="grid gap-0.5">
-          {STUDIO_NAV.map(({ key, label, icon: Icon, phase }) => (
+          {STUDIO_NAV.map(({ key, label, icon: Icon, phase, available, href }) => (
             <li key={key}>
+              {available ? (
+                <Link
+                  href={href}
+                  onClick={onNavigate}
+                  aria-current={pathname.startsWith(href) ? "page" : undefined}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    pathname.startsWith(href) ? "bg-secondary text-secondary-foreground" : "text-foreground/80 hover:bg-accent hover:text-accent-foreground",
+                  )}
+                >
+                  <Icon className="size-[18px]" />
+                  <span className="flex-1 truncate">{label}</span>
+                </Link>
+              ) : (
               <span
                 aria-disabled="true"
                 title={`Arrives in Phase ${phase}`}
@@ -45,6 +59,7 @@ export function SidebarNav({ onNavigate }) {
                 <span className="flex-1 truncate">{label}</span>
                 <Lock className="size-3.5 opacity-60" aria-label="Not yet available" />
               </span>
+              )}
             </li>
           ))}
         </ul>

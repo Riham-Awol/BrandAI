@@ -49,3 +49,23 @@ describe("design system components", () => {
     expect(link).toHaveAttribute("data-slot", "button");
   });
 });
+
+describe("structured view", async () => {
+  const { StructuredView } = await import("@/components/structured/structured-view");
+  const { schemaToSpec } = await import("@/components/structured/schema-spec");
+  const { SECTION_SCHEMAS } = await import("@/modules/launch/schemas.js");
+
+  it("renders lists, enums and object cards with item actions", () => {
+    render(
+      <StructuredView
+        spec={schemaToSpec(SECTION_SCHEMAS.names)}
+        value={{ suggestions: [{ name: "Crumb", tagline: "Fresh", style: "compound", rationale: "Warm" }], namingNotes: "Check trademarks" }}
+        renderItemActions={(path, item) => <button>Use {item.name}</button>}
+      />,
+    );
+    expect(screen.getByRole("heading", { name: "Crumb" })).toBeInTheDocument();
+    expect(screen.getByText("Compound")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Use Crumb" })).toBeInTheDocument();
+    expect(screen.getByText("Check trademarks")).toBeInTheDocument();
+  });
+});

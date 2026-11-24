@@ -3,7 +3,7 @@
  * its acceptance criteria (see docs/PHASE_STATUS.md).
  */
 export const PRODUCT_PHASES = [
-  { phase: 1, key: "launch", title: "Business Launch Studio", summary: "Turn an idea into a structured business profile and launch plan.", available: false },
+  { phase: 1, key: "launch", title: "Business Launch Studio", summary: "Turn an idea into a structured business profile and launch plan.", available: true, href: "/launch" },
   { phase: 2, key: "brand", title: "Brand Identity Studio", summary: "Logos, palettes, typography, voice and brand guidelines.", available: false },
   { phase: 3, key: "strategy", title: "Marketing Strategy Studio", summary: "Personas, channels, budgets and KPIs.", available: false },
   { phase: 4, key: "social", title: "Social Media Studio", summary: "Captions, scripts, carousels and content calendars.", available: false },

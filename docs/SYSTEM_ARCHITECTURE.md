@@ -41,6 +41,30 @@ Browser ──► Next.js (Vercel)
 5. Phase modules will live in `src/modules/<key>/` (UI components, prompts,
    schemas, module services) and depend on `src/server/*`, never the reverse.
 
+## Studio modules (Phase 1+)
+```
+src/modules/launch/
+  schemas.js        Zod input + per-section output schemas (client + server)
+  sections.js       ordered section metadata and dependencies (client-safe)
+  prompts.js        instructions and prompt assembly (server-only)
+  service.js        projects, versioned generation, edits, accept, checklist, export
+  profile-draft.js  pre-fills the business profile from outputs
+  markdown.js       launch-pack export (pure)
+  mock-fixtures.js  sample outputs for the TEST-ONLY mock provider
+  components/       idea form, studio, checklist, profile step
+```
+Shared building blocks introduced for all studios:
+- `projects` + `project_outputs`: append-only versioned section outputs (AI or user edit), one accepted per section.
+- `src/components/structured/*`: `schemaToSpec()` turns an output Zod schema into a field spec that
+  drives a generic, readable `StructuredView` and a validated `StructuredEditor`.
+- `src/server/businesses/profile-service.js`: structured profile tables ↔ central context draft.
+- Mock fixture registry (`src/server/ai/providers/mock-fixtures.js`) so e2e tests exercise real flows
+  when `AI_TEXT_PROVIDER=mock` (never allowed in production; outputs flagged `isMock`).
+
+Data flow for a section: idea input + active outputs of the sections it `uses` + approved business
+context → `generateText()` (schema) → new `project_outputs` version → UI. The profile builder maps
+active outputs → profile tables → context draft → admin approval → reused by every later studio.
+
 ## Authentication
 - Auth.js v4, Credentials provider, JWT cookie (`httpOnly`, `SameSite=Lax`,
   `Secure` in production), 7-day max age.

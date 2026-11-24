@@ -1,5 +1,7 @@
 import { Suspense } from "react";
-import { Building2, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { Building2, Rocket, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/layout/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -47,14 +49,17 @@ async function Dashboard() {
           <EmptyState
             icon={Sparkles}
             title="Your first business starts here"
-            description="The Business Launch Studio (Phase 1) will guide you from an idea to a complete business profile. It is not available yet."
+            description="The Business Launch Studio guides you from an idea to a complete business profile and launch plan."
+            action={<Button asChild><Link href="/launch/new"><Rocket /> Start with the Launch Studio</Link></Button>}
           />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {businesses.map((b) => (
-              <Card key={b.id}>
+              <Card key={b.id} className="relative transition-shadow hover:shadow-lift">
                 <CardHeader>
-                  <CardTitle>{b.name}</CardTitle>
+                  <CardTitle>
+                    <Link href={`/businesses/${b.id}`} className="after:absolute after:inset-0">{b.name}</Link>
+                  </CardTitle>
                   <CardDescription>{b.industry ?? "Industry not set"}</CardDescription>
                 </CardHeader>
                 <Badge variant="outline" className="w-fit capitalize">{b.stage.toLowerCase()}</Badge>
@@ -95,10 +100,12 @@ async function Dashboard() {
         </div>
         <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {PRODUCT_PHASES.slice(0, 9).map((p) => (
-            <li key={p.key} className="flex gap-4 rounded-xl border bg-card p-4 shadow-soft">
+            <li key={p.key} className="relative flex gap-4 rounded-xl border bg-card p-4 shadow-soft">
               <span className="grid size-9 shrink-0 place-items-center rounded-full bg-secondary font-display text-sm font-semibold text-secondary-foreground">{p.phase}</span>
               <div className="min-w-0 space-y-1">
-                <p className="font-semibold leading-tight">{p.title}</p>
+                <p className="font-semibold leading-tight">
+                  {p.available ? <Link href={p.href} className="after:absolute after:inset-0">{p.title}</Link> : p.title}
+                </p>
                 <p className="text-sm text-muted-foreground">{p.summary}</p>
                 <Badge variant={p.available ? "success" : "outline"}>{p.available ? "Available" : "Coming soon"}</Badge>
               </div>

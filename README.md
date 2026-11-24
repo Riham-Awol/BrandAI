@@ -6,8 +6,19 @@ An AI-powered business launch, branding, marketing, design and growth platform.
 Users describe their business once; Brand AI reuses that **approved business
 context** across every studio.
 
-> **Status:** Phase 0 (foundation) complete and awaiting approval. No product
-> studio is available yet. See [docs/PHASE_STATUS.md](docs/PHASE_STATUS.md).
+> **Status:** Phase 1 (Business Launch Studio) complete and awaiting approval.
+> See [docs/PHASE_STATUS.md](docs/PHASE_STATUS.md).
+
+## Available today
+- Accounts, workspaces with roles, workspace data isolation.
+- **Business Launch Studio** (`/launch`): idea → analysis, names, industry, audience, customer problems,
+  competitors, business model, strategy, business plan, launch checklist — each editable, versioned and
+  regenerable — then a structured **business profile** you approve for reuse across Brand AI.
+- Business profile page for existing businesses (`/businesses/:id`).
+
+AI features need `ANTHROPIC_API_KEY`. Without it the studio explains that AI is not configured. To try
+the flows offline in development, set `AI_TEXT_PROVIDER=mock` and `AI_ALLOW_MOCK=true` — results are
+clearly labelled sample data (refused in production).
 
 ## Stack
 Next.js 16 (App Router, JavaScript) · React 19 · Tailwind CSS 4 · shadcn/ui
@@ -21,7 +32,7 @@ Requirements: Node.js 22+, MySQL 8 (local install or `docker compose up -d mysql
 ```bash
 npm install
 cp .env.example .env              # then fill DATABASE_URL, SHADOW_DATABASE_URL, NEXTAUTH_SECRET
-npm run db:migrate                # applies prisma/migrations to the dev database
+npm run db:migrate                # applies prisma/migrations and regenerates the Prisma client
 npm run dev                       # http://localhost:3000
 ```
 
@@ -62,6 +73,8 @@ In development, password-reset emails are printed to the server console
 prisma/                 schema.prisma, migrations/
 src/app/                routes: (auth) pages, (app) authenticated pages, api/v1 route handlers
 src/components/         ui/ (design system), layout/, auth/, brand/, theme/
+src/modules/<studio>/   phase modules (Phase 1: launch/) — schemas, prompts, services, UI
+src/components/structured/  schema-driven viewer/editor for structured AI output
 src/server/             server-only shared services (auth, permissions, workspaces, businesses,
                         ai, storage, usage, audit, notifications, email, rate-limit, http, db, config)
 src/validation/         Zod schemas shared by client and server
@@ -84,6 +97,8 @@ target database before or during release (not automatically on build).
 Production startup refuses mock AI providers and the console email provider.
 
 ## Known limitations
+Phase-specific limitations are listed in [docs/PHASE_STATUS.md](docs/PHASE_STATUS.md).
+- Live AI output has not been verified yet (no API key in the build environment); AI flows are tested with the mock provider.
 - No external providers are connected: AI text (needs `ANTHROPIC_API_KEY`), AI images
   (provider chosen in Phase 2), file storage (needs S3-compatible credentials), email (needs Resend).
 - Email verification, MFA, OAuth sign-in and "log out of all devices" UI are not implemented yet

@@ -15,4 +15,4 @@
 **Consequences.** Swapping/adding providers = one adapter + registry entry. Prices in
 `pricing.js` must be maintained when models change. Model can be overridden per task
 (e.g. a cheaper model for bulk tasks) — that choice is made per phase with approval.
-**Status.** Proposed — needs approval of Anthropic as text provider and an API key.
+**Status.** Accepted (approved with Phase 0, 2026-11-24).
