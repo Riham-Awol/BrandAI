@@ -35,6 +35,16 @@ Plan and acceptance criteria: [phases/PHASE_3.md](./phases/PHASE_3.md)
 | End-to-end (desktop + mobile) | 22 (Phase 2: 19) |
 `npm run lint`, `npm run build` pass; all Phase 0–2 suites pass.
 
+### Live verification (free Gemini tier, 2026-11-24)
+- Succeeded with real AI: **personas** (gemini-3.5-flash, 35 s), **budget** (gemini-3.5-flash, 61 s),
+  **objectives** (gemini-3.5-flash-lite, 32 s) — all schema-valid.
+- The remaining five sections could not be verified live: for ~40 minutes every free Gemini model returned
+  503 "high demand" or 429 "quota exceeded" (per-model free daily quotas were partly used by testing). The app
+  handled it correctly — fallback through 6 models, cooldowns, second pass, then a clear
+  "busy or unavailable, try again shortly" message instead of hanging.
+- All eight sections are verified end to end with the mock provider (integration + e2e).
+- Recommendation: add a second free provider (e.g. Groq) as a cross-provider fallback before real users.
+
 ### Defects found and fixed
 - Budget tooltip only appeared for keyboard focus → shows on any focus/hover.
 - Phasing amounts displayed unformatted → formatted in the plan currency.
