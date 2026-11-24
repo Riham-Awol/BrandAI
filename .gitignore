@@ -1,0 +1,45 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+*.log
+
+# env files — never commit secrets. Only the placeholder templates are tracked.
+.env*
+!.env.example
+!.env.test.example
+
+# vercel
+.vercel
+
+# typescript artefacts (project is JavaScript-only)
+*.tsbuildinfo
+next-env.d.ts
+
+# editor / local tooling
+.idea/
+.vscode/*
+!.vscode/extensions.json

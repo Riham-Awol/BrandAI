@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci_root
+          MYSQL_DATABASE: brandai_test
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pci_root"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      DATABASE_URL: mysql://root:ci_root@127.0.0.1:3306/brandai_test
+      TEST_DATABASE_URL: mysql://root:ci_root@127.0.0.1:3306/brandai_test
+      NEXTAUTH_SECRET: ci-only-secret-not-used-anywhere-else
+      NEXTAUTH_URL: http://localhost:3100
+      APP_URL: http://localhost:3100
+      APP_ENV: test
+      EMAIL_PROVIDER: console
+      STORAGE_PROVIDER: none
+      AI_TEXT_PROVIDER: anthropic
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npx prisma migrate deploy
+      - run: npm run test:unit
+      - run: npm run test:integration
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e -- --trace off
+        env:
+          CI: "true"

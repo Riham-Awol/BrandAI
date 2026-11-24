@@ -1,0 +1,132 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Brand AI design tokens.
+ * Palette: background #F7F4FA · light lavender #E8DDF4 · accent lavender #B9A0D2
+ *          deep plum #302442 · dark text #17151C
+ * Components use semantic tokens only (bg-card, text-muted-foreground, ...),
+ * never raw hex values, so light/dark themes stay consistent.
+ */
+:root {
+  --radius: 0.875rem;
+
+  --background: #f7f4fa;
+  --foreground: #17151c;
+  --card: #ffffff;
+  --card-foreground: #17151c;
+  --popover: #ffffff;
+  --popover-foreground: #17151c;
+  --primary: #302442;
+  --primary-foreground: #f7f4fa;
+  --secondary: #e8ddf4;
+  --secondary-foreground: #302442;
+  --muted: #efe9f5;
+  --muted-foreground: #675f73;
+  --accent: #e8ddf4;
+  --accent-foreground: #302442;
+  --highlight: #b9a0d2;
+  --destructive: #b42318;
+  --destructive-foreground: #ffffff;
+  --success: #1f7a4d;
+  --warning: #9a6700;
+  --border: #e3d9ec;
+  --input: #ddd2e8;
+  --ring: #b9a0d2;
+
+  --sidebar: #fbf9fd;
+  --sidebar-foreground: #17151c;
+  --sidebar-border: #ebe3f2;
+
+  --shadow-soft: 0 1px 2px rgb(48 36 66 / 0.04), 0 8px 24px -12px rgb(48 36 66 / 0.12);
+  --shadow-lift: 0 2px 4px rgb(48 36 66 / 0.05), 0 18px 40px -18px rgb(48 36 66 / 0.25);
+}
+
+.dark {
+  --background: #121017;
+  --foreground: #f2eef7;
+  --card: #1b1722;
+  --card-foreground: #f2eef7;
+  --popover: #1e1a26;
+  --popover-foreground: #f2eef7;
+  --primary: #d6c5ea;
+  --primary-foreground: #1d1527;
+  --secondary: #2a2335;
+  --secondary-foreground: #ece3f6;
+  --muted: #231d2c;
+  --muted-foreground: #a99fb6;
+  --accent: #2d2539;
+  --accent-foreground: #ece3f6;
+  --highlight: #b9a0d2;
+  --destructive: #f97066;
+  --destructive-foreground: #1d1527;
+  --success: #47cd89;
+  --warning: #fdb022;
+  --border: #2e2738;
+  --input: #3a3246;
+  --ring: #b9a0d2;
+
+  --sidebar: #16131c;
+  --sidebar-foreground: #f2eef7;
+  --sidebar-border: #262030;
+
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.3), 0 18px 40px -18px rgb(0 0 0 / 0.7);
+}
+
+@theme inline {
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-highlight: var(--highlight);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --shadow-soft: var(--shadow-soft);
+  --shadow-lift: var(--shadow-lift);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+  h1, h2, h3 {
+    @apply font-display tracking-tight;
+  }
+}

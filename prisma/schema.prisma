@@ -1,0 +1,381 @@
+// Brand AI — foundation schema.
+// Only foundation tables live here at initialization. Each phase extends the
+// schema through its own migration (see docs/DATABASE_DESIGN.md).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// ─────────────────────────────────────────────────────────────
+// Identity & authentication
+// ─────────────────────────────────────────────────────────────
+
+model User {
+  id               String    @id @default(uuid()) @db.Char(36)
+  email            String    @unique @db.VarChar(320)
+  name             String    @db.VarChar(120)
+  passwordHash     String?   @map("password_hash") @db.VarChar(255)
+  emailVerifiedAt  DateTime? @map("email_verified_at")
+  image            String?   @db.VarChar(2048)
+  // Incremented to invalidate every existing session (password change, "log out everywhere").
+  sessionVersion   Int       @default(0) @map("session_version")
+  failedLoginCount Int       @default(0) @map("failed_login_count")
+  lockedUntil      DateTime? @map("locked_until")
+  lastLoginAt      DateTime? @map("last_login_at")
+  isPlatformAdmin  Boolean   @default(false) @map("is_platform_admin")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  authTokens        AuthToken[]
+  memberships       WorkspaceMember[]
+  ownedWorkspaces   Workspace[]              @relation("WorkspaceOwner")
+  businessesCreated Business[]               @relation("BusinessCreatedBy")
+  contextVersions   BusinessContextVersion[] @relation("ContextCreatedBy")
+  contextApprovals  BusinessContextVersion[] @relation("ContextApprovedBy")
+  aiGenerations     AiGeneration[]
+  aiUsageRecords    AiUsageRecord[]
+  storedFiles       StoredFile[]
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+
+  @@index([deletedAt])
+  @@map("users")
+}
+
+enum AuthTokenType {
+  PASSWORD_RESET
+  EMAIL_VERIFICATION
+}
+
+// Single-use tokens. Only a SHA-256 hash of the token is stored.
+model AuthToken {
+  id        String        @id @default(uuid()) @db.Char(36)
+  userId    String        @map("user_id") @db.Char(36)
+  type      AuthTokenType
+  tokenHash String        @unique @map("token_hash") @db.Char(64)
+  expiresAt DateTime      @map("expires_at")
+  usedAt    DateTime?     @map("used_at")
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@map("auth_tokens")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Workspaces (tenancy boundary)
+// ─────────────────────────────────────────────────────────────
+
+enum WorkspaceType {
+  PERSONAL
+  TEAM
+  AGENCY
+}
+
+model Workspace {
+  id        String        @id @default(uuid()) @db.Char(36)
+  name      String        @db.VarChar(120)
+  slug      String        @unique @db.VarChar(80)
+  type      WorkspaceType @default(PERSONAL)
+  ownerId   String        @map("owner_id") @db.Char(36)
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+  deletedAt DateTime?     @map("deleted_at")
+
+  owner          User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  members        WorkspaceMember[]
+  businesses     Business[]
+  aiGenerations  AiGeneration[]
+  aiUsageRecords AiUsageRecord[]
+  usageLimits    UsageLimit[]
+  storedFiles    StoredFile[]
+  notifications  Notification[]
+  auditLogs      AuditLog[]
+
+  @@index([ownerId])
+  @@index([deletedAt])
+  @@map("workspaces")
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+model WorkspaceMember {
+  id          String        @id @default(uuid()) @db.Char(36)
+  workspaceId String        @map("workspace_id") @db.Char(36)
+  userId      String        @map("user_id") @db.Char(36)
+  role        WorkspaceRole @default(VIEWER)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+  @@map("workspace_members")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Businesses & central business context
+// ─────────────────────────────────────────────────────────────
+
+enum BusinessStage {
+  IDEA
+  STARTING
+  OPERATING
+  ESTABLISHED
+}
+
+enum BusinessStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+model Business {
+  id          String         @id @default(uuid()) @db.Char(36)
+  workspaceId String         @map("workspace_id") @db.Char(36)
+  name        String         @db.VarChar(160)
+  industry    String?        @db.VarChar(120)
+  description String?        @db.Text
+  stage       BusinessStage  @default(IDEA)
+  status      BusinessStatus @default(DRAFT)
+  createdById String         @map("created_by_id") @db.Char(36)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  deletedAt   DateTime?      @map("deleted_at")
+
+  workspace       Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy       User                     @relation("BusinessCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  contextVersions BusinessContextVersion[]
+  aiGenerations   AiGeneration[]
+  storedFiles     StoredFile[]
+
+  @@index([workspaceId, deletedAt])
+  @@index([createdById])
+  @@map("businesses")
+}
+
+enum ContextVersionStatus {
+  DRAFT
+  APPROVED
+  SUPERSEDED
+}
+
+// Versioned snapshot of the central business context. AI modules only ever
+// receive the sections listed in `approvedSections` of the latest APPROVED version.
+model BusinessContextVersion {
+  id               String               @id @default(uuid()) @db.Char(36)
+  businessId       String               @map("business_id") @db.Char(36)
+  version          Int
+  status           ContextVersionStatus @default(DRAFT)
+  data             Json
+  approvedSections Json                 @map("approved_sections")
+  changeNote       String?              @map("change_note") @db.VarChar(500)
+  createdById      String               @map("created_by_id") @db.Char(36)
+  approvedById     String?              @map("approved_by_id") @db.Char(36)
+  approvedAt       DateTime?            @map("approved_at")
+  createdAt        DateTime             @default(now()) @map("created_at")
+
+  business   Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdBy  User           @relation("ContextCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  approvedBy User?          @relation("ContextApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  generations AiGeneration[]
+
+  @@unique([businessId, version])
+  @@index([businessId, status])
+  @@map("business_context_versions")
+}
+
+// ─────────────────────────────────────────────────────────────
+// AI generations & usage tracking
+// ─────────────────────────────────────────────────────────────
+
+enum AiKind {
+  TEXT
+  IMAGE
+}
+
+enum AiGenerationStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+model AiGeneration {
+  id               String             @id @default(uuid()) @db.Char(36)
+  workspaceId      String             @map("workspace_id") @db.Char(36)
+  businessId       String?            @map("business_id") @db.Char(36)
+  userId           String             @map("user_id") @db.Char(36)
+  contextVersionId String?            @map("context_version_id") @db.Char(36)
+  module           String             @db.VarChar(60)
+  task             String             @db.VarChar(80)
+  kind             AiKind
+  provider         String             @db.VarChar(40)
+  model            String             @db.VarChar(120)
+  status           AiGenerationStatus @default(PENDING)
+  input            Json
+  output           Json?
+  errorCode        String?            @map("error_code") @db.VarChar(80)
+  errorMessage     String?            @map("error_message") @db.VarChar(1000)
+  latencyMs        Int?               @map("latency_ms")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+
+  workspace      Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  business       Business?               @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  user           User                    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  contextVersion BusinessContextVersion? @relation(fields: [contextVersionId], references: [id], onDelete: SetNull)
+  usageRecords   AiUsageRecord[]
+
+  @@index([workspaceId, createdAt])
+  @@index([businessId, module])
+  @@index([userId])
+  @@map("ai_generations")
+}
+
+model AiUsageRecord {
+  id           String   @id @default(uuid()) @db.Char(36)
+  workspaceId  String   @map("workspace_id") @db.Char(36)
+  userId       String   @map("user_id") @db.Char(36)
+  generationId String?  @map("generation_id") @db.Char(36)
+  provider     String   @db.VarChar(40)
+  model        String   @db.VarChar(120)
+  kind         AiKind
+  inputTokens  Int      @default(0) @map("input_tokens")
+  outputTokens Int      @default(0) @map("output_tokens")
+  imageCount   Int      @default(0) @map("image_count")
+  // Estimated cost in micro-USD (1 USD = 1,000,000) to avoid floating point drift.
+  costMicroUsd BigInt   @default(0) @map("cost_micro_usd")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  workspace  Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user       User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  generation AiGeneration? @relation(fields: [generationId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@index([userId, createdAt])
+  @@map("ai_usage_records")
+}
+
+enum UsageMetric {
+  AI_TEXT_REQUESTS
+  AI_IMAGE_REQUESTS
+  AI_COST_MICRO_USD
+  STORAGE_BYTES
+}
+
+enum UsagePeriod {
+  DAILY
+  MONTHLY
+}
+
+model UsageLimit {
+  id          String      @id @default(uuid()) @db.Char(36)
+  workspaceId String      @map("workspace_id") @db.Char(36)
+  metric      UsageMetric
+  period      UsagePeriod @default(MONTHLY)
+  limitValue  BigInt      @map("limit_value")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, metric, period])
+  @@map("usage_limits")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Files (metadata only — bytes live in cloud storage)
+// ─────────────────────────────────────────────────────────────
+
+model StoredFile {
+  id           String    @id @default(uuid()) @db.Char(36)
+  workspaceId  String    @map("workspace_id") @db.Char(36)
+  businessId   String?   @map("business_id") @db.Char(36)
+  uploadedById String    @map("uploaded_by_id") @db.Char(36)
+  provider     String    @db.VarChar(40)
+  bucket       String    @db.VarChar(120)
+  objectKey    String    @unique @map("object_key") @db.VarChar(512)
+  originalName String    @map("original_name") @db.VarChar(255)
+  mimeType     String    @map("mime_type") @db.VarChar(120)
+  sizeBytes    Int       @map("size_bytes")
+  checksum     String    @db.Char(64)
+  purpose      String    @db.VarChar(60)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  workspace  Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  uploadedBy User      @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@index([workspaceId, deletedAt])
+  @@index([businessId])
+  @@map("stored_files")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Notifications, audit logging, rate limiting
+// ─────────────────────────────────────────────────────────────
+
+model Notification {
+  id          String    @id @default(uuid()) @db.Char(36)
+  userId      String    @map("user_id") @db.Char(36)
+  workspaceId String?   @map("workspace_id") @db.Char(36)
+  type        String    @db.VarChar(60)
+  title       String    @db.VarChar(200)
+  body        String?   @db.Text
+  link        String?   @db.VarChar(500)
+  readAt      DateTime? @map("read_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Char(36)
+  workspaceId String?  @map("workspace_id") @db.Char(36)
+  actorId     String?  @map("actor_id") @db.Char(36)
+  action      String   @db.VarChar(100)
+  entityType  String?  @map("entity_type") @db.VarChar(60)
+  entityId    String?  @map("entity_id") @db.VarChar(64)
+  metadata    Json?
+  ipAddress   String?  @map("ip_address") @db.VarChar(64)
+  userAgent   String?  @map("user_agent") @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  actor     User?      @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([action])
+  @@map("audit_logs")
+}
+
+// Fixed-window counters shared by all app instances (serverless-safe).
+// Replaced by Redis when Redis is introduced for background jobs.
+model RateLimitBucket {
+  key       String   @id @db.VarChar(191)
+  count     Int
+  resetAt   DateTime @map("reset_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([resetAt])
+  @@map("rate_limit_buckets")
+}
