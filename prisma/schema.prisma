@@ -108,6 +108,7 @@ model Workspace {
   brandIdentities BrandIdentity[]
   brandAssets     BrandAsset[]
   marketingPlans  MarketingPlan[]
+  designs         Design[]
 
   @@index([ownerId])
   @@index([deletedAt])
@@ -185,6 +186,7 @@ model Business {
   problems        BusinessCustomerProblem[]
   competitors     Competitor[]
   goals           BusinessGoal[]
+  designs         Design[]
 
   @@index([workspaceId, deletedAt])
   @@index([createdById])
@@ -801,4 +803,63 @@ model SocialPostRevision {
 
   @@unique([postId, version])
   @@map("social_post_revisions")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Phase 5 — Designs (structured specs rendered to SVG/PNG on demand)
+// ─────────────────────────────────────────────────────────────
+
+enum DesignKind {
+  POSTER
+  FLYER
+  AD
+  BANNER
+  PRODUCT
+  EVENT
+  SOCIAL
+}
+
+// A saved design. `spec` holds the template, colour scheme and copy; the
+// artwork itself is rendered from the spec + the approved brand identity.
+model Design {
+  id           String     @id @default(uuid()) @db.Char(36)
+  workspaceId  String     @map("workspace_id") @db.Char(36)
+  businessId   String     @map("business_id") @db.Char(36)
+  kind         DesignKind
+  format       String     @db.VarChar(40)
+  name         String     @db.VarChar(160)
+  brief        Json
+  spec         Json
+  imageFileId  String?    @map("image_file_id") @db.Char(36)
+  sourcePostId String?    @map("source_post_id") @db.Char(36)
+  version      Int        @default(1)
+  isMock       Boolean    @default(false) @map("is_mock")
+  createdById  String     @map("created_by_id") @db.Char(36)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  deletedAt    DateTime?  @map("deleted_at")
+
+  workspace Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  business  Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  revisions DesignRevision[]
+
+  @@index([workspaceId, deletedAt])
+  @@index([businessId, kind])
+  @@map("designs")
+}
+
+model DesignRevision {
+  id          String   @id @default(uuid()) @db.Char(36)
+  designId    String   @map("design_id") @db.Char(36)
+  version     Int
+  format      String   @db.VarChar(40)
+  spec        Json
+  imageFileId String?  @map("image_file_id") @db.Char(36)
+  createdById String   @map("created_by_id") @db.Char(36)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  design Design @relation(fields: [designId], references: [id], onDelete: Cascade)
+
+  @@unique([designId, version])
+  @@map("design_revisions")
 }

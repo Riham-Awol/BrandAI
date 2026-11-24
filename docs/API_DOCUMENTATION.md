@@ -133,6 +133,25 @@ Base: `/workspaces/:workspaceId/social-projects`. Sections: `pillars`, `calendar
 | GET / PATCH / DELETE | `/:projectId/posts/:postId` | read / `business:update` | PATCH `{ title?, date?, status?, isPromotion?, content? }` (content → new revision; READY requires content; date must be in the plan month) |
 | GET | `/:projectId/export?format=csv\|markdown` | `business:read` | file download |
 
+### Creative Design Studio (Phase 5)
+Base: `/workspaces/:workspaceId/designs`. Kinds `POSTER|FLYER|AD|BANNER|PRODUCT|EVENT|SOCIAL`; formats and the
+formats allowed per kind in `src/modules/design/catalog.js`; spec schema in `src/modules/design/schemas.js`.
+
+| Method | Path | Permission | Body / notes |
+|---|---|---|---|
+| GET | `/?businessId=` | `business:read` | saved designs (newest first) |
+| POST | `/generate` | `ai:generate` | `{ businessId, kind, format, brief (5-2000), details?, cta?, imageFileId?, sourcePostId? }` → `{ options: [{ spec, svg, warnings }]×3, brandApproved, isMock }`; nothing saved |
+| POST | `/preview` | `business:read` | `{ businessId, format, spec, imageFileId? }` → `{ svg, warnings, brandApproved }` |
+| POST | `/` | `business:update` | save `{ businessId, kind, format, brief, spec, imageFileId?, sourcePostId?, isMock }` → design (version 1) |
+| GET / PATCH / DELETE | `/:designId` | read / `business:update` | PATCH `{ name?, format?, spec?, imageFileId? }` (visual change → new version) |
+| POST | `/:designId/revisions/:version` | `business:update` | restore a version (creates a new version) |
+| POST | `/:designId/duplicate` | `business:update` | copy as a new design |
+| GET | `/:designId/render?format=&download=1` | `business:read` | `image/svg+xml` (CSP `img-src data:; sandbox`) |
+| GET | `/images?businessId=` | `business:read` | image brand assets usable in designs `[{ fileId, name }]` |
+| GET | `/from-post/:postId` | `business:read` | brief pre-fill from a social post |
+
+Images must be PNG/JPEG/GIF/WebP files of the **same business** (422 otherwise); sizes outside the kind → 422.
+
 ### Brand hub & assets (Phase 2)
 | Method | Path | Permission | Notes |
 |---|---|---|---|

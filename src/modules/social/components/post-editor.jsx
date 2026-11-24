@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, Check, Copy, History, Loader2, RefreshCw, Trash2 } from "lucide-react";
+import { AlertCircle, Check, Copy, History, Loader2, Palette, RefreshCw, Trash2 } from "lucide-react";
 import { apiRequest } from "@/lib/api-client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -183,6 +184,7 @@ export function PostEditor({ base, postId, businessName, canEdit, canGenerate, a
           <DialogFooter>
             {canEdit && <Button variant="ghost" className="mr-auto text-muted-foreground" onClick={remove} disabled={busy !== null}><Trash2 /> Delete</Button>}
             {draft && <Button variant="outline" onClick={copy}><Copy /> Copy caption</Button>}
+            {canEdit && <Button variant="outline" asChild><Link href={`/design/new?post=${post.id}`}><Palette /> Design this post</Link></Button>}
             {canEdit && <Button onClick={save} disabled={!dirty || busy !== null}>{busy === "save" ? <Loader2 className="animate-spin" /> : <Check />} Save</Button>}
           </DialogFooter>
         )}

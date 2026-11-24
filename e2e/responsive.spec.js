@@ -75,3 +75,18 @@ test("mobile layout: social calendar list and post editor fit the screen", async
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test("mobile layout: design options and editor fit the screen", async ({ page }) => {
+  await registerViaUi(page, newUser());
+  await page.goto("/design/new");
+  await page.getByLabel("Business name").fill("Mobile Designs");
+  await page.getByLabel("Brief").fill("Flyer for our weekend market stall");
+  await page.getByRole("button", { name: "Generate 3 designs" }).click();
+  await expect(page.getByRole("img", { name: /Design option 1/ })).toBeVisible();
+  let overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+  await page.getByRole("button", { name: "Use this design" }).first().click();
+  await expect(page.getByRole("img", { name: /^Preview:/ })).toHaveAttribute("src", /^data:image\/svg\+xml/);
+  overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+});

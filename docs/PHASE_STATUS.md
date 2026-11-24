@@ -6,18 +6,66 @@
 | 1 — Business Launch Studio | APPROVED | ☑ |
 | 2 — Brand Identity Studio | APPROVED | ☑ |
 | 3 — Marketing Strategy Studio | APPROVED | ☑ |
-| 4 — Social Media Studio | **COMPLETE — awaiting approval** | ☐ |
-| 5 — Creative Design Studio | NOT STARTED (blocked on Phase 4 approval) | ☐ |
+| 4 — Social Media Studio | APPROVED | ☑ |
+| 5 — Creative Design Studio | **COMPLETE — awaiting approval** | ☐ |
 | 6–10 | NOT STARTED | ☐ |
 
-**Current phase:** 4 (Social Media Studio) · **Last updated:** 2026-11-24
+**Current phase:** 5 (Creative Design Studio) · **Last updated:** 2026-11-24
 
 **Open follow-up (owner, 2026-11-24):** add Groq as a second free AI provider (cross-provider fallback) and
-re-verify the remaining Phase 3 sections live.
+re-verify the remaining Phase 3 sections live. Status: the Groq console showed an error on the owner's side
+(2026-11-24); the owner approved Phase 4 and asked to continue with Phase 5 and revisit Groq afterwards.
 
 ---
 
-## Phase 4 — Social Media Studio
+## Phase 5 — Creative Design Studio
+
+Plan and acceptance criteria: [phases/PHASE_5.md](./phases/PHASE_5.md)
+
+### Implemented and verified
+- `/design` gallery, `/design/new` brief → 3 rendered options → save, `/design/:id` editor with live preview,
+  versions/restore, duplicate, delete, SVG / PNG (300 dpi print) / print-to-PDF exports.
+- Vector design renderer `src/server/design/renderer.js` (6 templates + wide-banner layout) using the approved
+  brand identity; shared text layout helpers extracted to `src/server/brand/text.js` (measure, wrap, fit, blocks).
+- "Design this post" button in the Social Media Studio post editor (pre-fills brief, size and CTA).
+- Photos from the business's brand assets (same business only), placed in the split-image layout.
+
+### Tests (all passing)
+| Suite | Count |
+|---|---|
+| Unit | 111 (Phase 4: 97) |
+| Integration (MySQL + mock provider) | 91 (Phase 4: 84) |
+| End-to-end (desktop + mobile) | 28 (Phase 4: 25) |
+`npm run lint`, `npm run build` pass; all Phase 0–4 suites pass.
+
+### Live verification
+- Rendering, editing and exports are deterministic code and were verified visually (contact sheets of every
+  template × format, light/dark UI, 390 px).
+- AI option generation uses the same orchestrator and free Gemini provider as earlier phases; verified with
+  the mock provider. Live attempt (2026-11-24 17:16 UTC): every free Gemini model returned 503 "high demand"
+  or quota errors; the app showed "The AI model is busy… try again shortly" after 13 s and saved nothing.
+  A second free provider (Groq) remains the recommended fix — see the open follow-up.
+
+### Defects found and fixed during the phase
+- Words were split mid-word when a headline was too long → fitting now shrinks before breaking words.
+- Long content overlapped footers → items are measured, sized to fit, and optional ones hidden with a warning.
+- A provided photo could be ignored when no option chose the photo layout → at least one option shows it.
+- Mid-grey brand colours produced 4.48:1 text → contrast fallback now guarantees ≥ 4.5:1.
+- Rapid edits could export a stale preview → exports are enabled only when the preview matches the edits.
+
+### Known limitations
+- No AI-generated imagery (no free, reliable image API; adding one needs approval as a paid service). Photos
+  come from uploads.
+- Fixed templates rather than freehand positioning; bundled fonts are Latin-only (others fall back to Inter).
+- PDF is via the browser's print dialog ("Save as PDF"), not a server-generated PDF.
+
+### Handover to Phase 6 (Website Builder)
+- The renderer's brand resolution (`resolveBrand`) and text helpers can produce hero/OG images for websites.
+- Website sections should reuse approved context + brand identity the same way.
+
+---
+
+## Phase 4 — Social Media Studio (APPROVED)
 
 Plan and acceptance criteria: [phases/PHASE_4.md](./phases/PHASE_4.md)
 

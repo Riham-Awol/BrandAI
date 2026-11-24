@@ -23,7 +23,7 @@ Read `docs/PHASE_STATUS.md` first; never start a phase without explicit approval
 - Errors: throw `Errors.*`/`AppError`; responses use the `{ ok, data | error }` envelope.
 - Session reads must be inside `<Suspense>` (cacheComponents is on). Use `getCurrentUser()` / `requireUser()`.
 - New studios: build on `createStudioEngine` (`src/server/studio/engine.js`), `studioRoutes(engine)` for route files, and `src/components/studio/*`; publish approved studio outputs to context with `publishApprovedSections`.
-- Generated SVG must be built from validated data only (see `src/server/brand/logo-renderer.js`); never embed user markup.
+- Generated SVG must be built from validated data only (see `src/server/brand/logo-renderer.js`, `src/server/design/renderer.js`); never embed user markup. Text goes through `src/server/brand/text.js` (outlined paths); images only as data URIs of validated stored files of the same business. Show generated SVG via `<img>`.
 - Phase modules live in `src/modules/<key>/`, depend on `src/server/*`, never the reverse. Follow `src/modules/launch` (schemas → sections → prompts → service → mock-fixtures → components).
 - Studio outputs: store in `projects`/`project_outputs` (append-only versions); render/edit with `src/components/structured/*`.
 - Register a mock fixture for every new AI task so e2e can run with `AI_TEXT_PROVIDER=mock`; fixtures must pass their schema (unit test).

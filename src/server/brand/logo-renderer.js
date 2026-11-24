@@ -3,6 +3,9 @@ import { icons } from "lucide";
 import { readableOn } from "@/modules/brand/color.js";
 import { ICON_SET } from "@/modules/brand/catalog/icons.js";
 import { loadFont } from "./fonts.js";
+import { applyCase, hasAllGlyphs, num, textPath, xml } from "./text.js";
+
+export { applyCase };
 
 /**
  * Renders a logo concept (validated spec) to a self-contained SVG string.
@@ -21,76 +24,7 @@ const SHAPES = {
   diamond: '<polygon points="50,0 100,50 50,100 0,50"/>',
 };
 
-const xml = (s) => String(s).replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" })[c]);
-const num = (n) => Number(n.toFixed(2));
-
-export function applyCase(text, letterCase) {
-  if (letterCase === "upper") return text.toUpperCase();
-  if (letterCase === "lower") return text.toLowerCase();
-  if (letterCase === "title") return text.replace(/\S+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
-  return text;
-}
-
-function hasAllGlyphs(font, text) {
-  return [...text].every((ch) => /\s/.test(ch) || font.charToGlyph(ch).index !== 0);
-}
-
-/**
- * Lays out text glyph by glyph (kerning + tracking). Glyphs are serialized
- * one by one (opentype.js 2.0 corrupts some coordinates when serializing a
- * combined path) and their bounding boxes merged.
- */
-function textPath(font, text, size, tracking = 0) {
-  const scale = size / font.unitsPerEm;
-  const parts = [];
-  const box = { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity };
-  let x = 0;
-  let prev = null;
-  const chars = [...text];
-  chars.forEach((ch, i) => {
-    const glyph = font.charToGlyph(ch);
-    if (prev) x += (font.getKerningValue(prev, glyph) || 0) * scale;
-    const path = glyph.getPath(x, 0, size);
-    if (path.commands.length) parts.push(serializeCommands(path.commands, box));
-    x += (glyph.advanceWidth || 0) * scale + (i < chars.length - 1 ? tracking * size : 0);
-    prev = glyph;
-  });
-  if (!Number.isFinite(box.x1)) Object.assign(box, { x1: 0, y1: -size * 0.7, x2: Math.max(x, 1), y2: 0 });
-  return { d: parts.join(""), box: { ...box, w: box.x2 - box.x1, h: box.y2 - box.y1 } };
-}
-
-/** Absolute-command SVG path serializer; also grows the bounding box (control points included). */
-function serializeCommands(commands, box) {
-  const f = (n) => (Number.isFinite(n) ? Number(n.toFixed(2)) : 0);
-  const grow = (x, y) => {
-    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-    box.x1 = Math.min(box.x1, x);
-    box.y1 = Math.min(box.y1, y);
-    box.x2 = Math.max(box.x2, x);
-    box.y2 = Math.max(box.y2, y);
-  };
-  let d = "";
-  for (const c of commands) {
-    if (c.type === "M" || c.type === "L") {
-      d += `${c.type}${f(c.x)} ${f(c.y)}`;
-      grow(c.x, c.y);
-    } else if (c.type === "Q") {
-      d += `Q${f(c.x1)} ${f(c.y1)} ${f(c.x)} ${f(c.y)}`;
-      grow(c.x1, c.y1);
-      grow(c.x, c.y);
-    } else if (c.type === "C") {
-      d += `C${f(c.x1)} ${f(c.y1)} ${f(c.x2)} ${f(c.y2)} ${f(c.x)} ${f(c.y)}`;
-      grow(c.x1, c.y1);
-      grow(c.x2, c.y2);
-      grow(c.x, c.y);
-    } else if (c.type === "Z") {
-      d += "Z";
-    }
-  }
-  return d;
-}
-
-function iconMarkup(name, color, strokeWidth = 2) {
+export function iconMarkup(name, color, strokeWidth = 2) {
   const node = icons[name];
   if (!node) return "";
   const children = node
@@ -99,7 +33,12 @@ function iconMarkup(name, color, strokeWidth = 2) {
   return `<g fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">${children}</g>`;
 }
 
-function themeColors(concept, theme) {
+function themeColors(concept, theme, background) {
+  if (theme === "knockout") {
+    // Single readable colour on a coloured design background (Phase 5 designs).
+    const on = readableOn(background ?? "#000000");
+    return { bg: null, mark: on, fg: background ?? "#000000", text: on };
+  }
   if (theme === "mono") return { bg: null, mark: "#17151c", fg: "#ffffff", text: "#17151c" };
   if (theme === "inverse") {
     const bg = concept.colors.mark;
@@ -150,12 +89,12 @@ async function markGroup(concept, colors, font, fallbackLetter) {
 
 /**
  * @param {object} concept validated logo concept
- * @param {{ name: string, variant?: "horizontal"|"stacked"|"mark"|"wordmark", theme?: "color"|"mono"|"inverse", height?: number }} options
+ * @param {{ name: string, variant?: "horizontal"|"stacked"|"mark"|"wordmark", theme?: "color"|"mono"|"inverse"|"knockout", height?: number, background?: string }} options
  */
-export async function renderLogoSvg(concept, { name, variant = "horizontal", theme = "color", height } = {}) {
+export async function renderLogoSvg(concept, { name, variant = "horizontal", theme = "color", height, background } = {}) {
   const label = applyCase(name.trim() || "Brand", concept.letterCase);
   const { font, warnings } = await resolveFont(concept, label);
-  const colors = themeColors(concept, theme);
+  const colors = themeColors(concept, theme, background);
   const tracking = Math.min(0.3, Math.max(-0.05, concept.letterSpacing ?? 0));
 
   // Name-only ("wordmark") concepts have no symbol: every layout except the
