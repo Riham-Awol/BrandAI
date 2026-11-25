@@ -25,7 +25,8 @@ services:
     environment:
       DATABASE_URL: mysql://brandai:${MYSQL_PASSWORD}@db:3306/brandai?connection_limit=10
       NODE_ENV: production
-    ports: ["3000:3000"]
+    # Only the reverse proxy on this machine can reach the app; it is not exposed directly.
+    ports: ["127.0.0.1:3000:3000"]
     depends_on:
       db: { condition: service_healthy }
 

@@ -18,3 +18,5 @@ Template: Context · Options · Decision · Consequences.
 | [012](./012-website-rendering-and-domains.md) | Websites as structured configs rendered by controlled components; versioned publishing; DNS-verified custom domains | Accepted |
 | [013](./013-automation-policy-and-scheduler.md) | Permission-based automation (3 modes) and a MySQL scheduler instead of Redis (supersedes the Redis part of 006) | Accepted |
 | [014](./014-privacy-friendly-analytics.md) | Cookieless first-party analytics; signed email tracking; AI explains code-computed metrics | Accepted |
+| [015](./015-plans-billing-and-credits.md) | Plans in code, Stripe as billing source of truth, AI credit ledger | Accepted |
+| [016](./016-agency-client-workspaces.md) | Agency clients as separate linked workspaces | Accepted |

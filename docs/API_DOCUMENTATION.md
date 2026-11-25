@@ -253,6 +253,32 @@ tracking-off workspaces are ignored); `GET /api/v1/email/:token/open` → GIF; `
 302 to the campaign's stored https link (token = HMAC-signed delivery id; any other input is ignored, so it can't
 redirect elsewhere). Printable report page: `/print/analytics/:reportId`.
 
+### Account, team, plans and administration (Phase 10)
+| Method | Path | Permission | Body / notes |
+|---|---|---|---|
+| GET / PATCH | `/me/account` | signed in | PATCH `{ name }` |
+| POST | `/me/password` | signed in | `{ currentPassword, newPassword }` → every session signed out |
+| POST | `/me/sessions/revoke` | signed in | sign out everywhere |
+| POST | `/me/email-verification` · `/auth/verify-email` (public) | signed in · token | `{ token }` |
+| POST | `/me/mfa/setup` · `/me/mfa/enable` · `/me/mfa/disable` · `/me/mfa/recovery-codes` | signed in | setup → `{ secret, otpauthUri, qrCode }`; enable `{ code }` → `{ recoveryCodes }`; disable `{ password, code }` |
+| POST | `/me/delete` | signed in | `{ password, confirm: "DELETE" }` (refused while owning a shared workspace) |
+| POST | `/workspaces` | signed in | `{ name, type: TEAM\|AGENCY }` (max 10 owned) |
+| GET / PATCH / DELETE | `/workspaces/:ws/settings` | read / `workspace:update` / `workspace:delete` | DELETE `{ confirmName }` (cancels a paid plan) |
+| GET | `/workspaces/:ws/members` | `members:read` | members, pending invitations, seats, permissions |
+| POST · DELETE | `/workspaces/:ws/invitations` · `/invitations/:id` | `members:manage` (admins: owner only) | `{ email, role: ADMIN\|EDITOR\|VIEWER }` |
+| POST | `/invitations/accept` | signed in (matching email) | `{ token }` |
+| PATCH · DELETE | `/workspaces/:ws/members/:memberId` | `members:manage` | `{ role }` |
+| POST | `/workspaces/:ws/leave` · `/workspaces/:ws/transfer` | member · `workspace:transfer` | transfer `{ memberId, password }` |
+| GET | `/workspaces/:ws/audit?action&before` | `audit:read` | |
+| GET | `/workspaces/:ws/billing` | `usage:read` | plan, credits, usage, limits, catalog |
+| POST | `/workspaces/:ws/billing/checkout` · `/credits` · `/portal` | `billing:manage` (owner) | `{ plan: PRO\|AGENCY }` · `{ pack: "credits_500" }` → `{ url }` |
+| GET / POST · PATCH · POST | `/workspaces/:ws/clients` · `/clients/:id` · `/clients/:id/share-team` | read / `clients:manage` | agency workspaces only |
+| * | `/admin/overview`, `/admin/users[/:id]`, `/admin/workspaces[/:id/plan\|credits\|suspend]`, `/admin/ai[/pause\|/test]`, `/admin/signups`, `/admin/audit` | platform admin + 2FA (404 otherwise) | |
+
+Public webhooks: `POST /api/v1/billing/webhook` (Stripe-Signature), `POST /api/v1/email/webhook` (Svix headers
+from Resend). Errors: `PLAN_LIMIT_REACHED` (402), `USAGE_LIMIT_REACHED` (402, AI credits), `AI_PAUSED` (503),
+`MFA_REQUIRED` (403 for admin pages). Sign-in returns `MFA_REQUIRED` / `MFA_INVALID` as the Auth.js error.
+
 ### Brand hub & assets (Phase 2)
 | Method | Path | Permission | Notes |
 |---|---|---|---|
@@ -271,6 +297,7 @@ Context sections: `basics`, `offering`, `audience`, `goals`, `competitors`,
 `website:publish` (Phase 6): OWNER, ADMIN — publish/unpublish websites and manage custom domains.
 `automation:approve`, `automation:manage` (Phase 8): OWNER, ADMIN. `automation:autopilot` (Phase 8): OWNER only.
 `analytics:manage` (Phase 9): OWNER, ADMIN — tracking switches and data retention.
+`clients:manage` (Phase 10): OWNER, ADMIN. `members:manage_admins`, `workspace:transfer` (Phase 10): OWNER only.
 
 | Permission | VIEWER | EDITOR | ADMIN | OWNER |
 |---|:-:|:-:|:-:|:-:|

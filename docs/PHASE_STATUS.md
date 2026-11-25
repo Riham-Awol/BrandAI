@@ -11,10 +11,10 @@
 | 6 — Website Builder | APPROVED | ☑ |
 | 7 — Stationery & Merchandise | APPROVED | ☑ |
 | 8 — Calendar & Automation | APPROVED | ☑ |
-| 9 — Analytics & Insights | **COMPLETE — awaiting approval** | ☐ |
-| 10 — SaaS administration & launch | NOT STARTED | ☐ |
+| 9 — Analytics & Insights | APPROVED | ☑ |
+| 10 — SaaS administration & launch | **COMPLETE — awaiting approval** | ☐ |
 
-**Current phase:** 9 (Analytics & Insights) · **Last updated:** 2026-11-25
+**Current phase:** 10 (SaaS administration & production launch) · **Last updated:** 2026-11-25
 
 **Second free AI provider — done (2026-11-24, ADR 011):** OpenRouter free models are configured as a fallback
 (`AI_TEXT_FALLBACK_PROVIDERS=openrouter`); verified live (Gemini failed → OpenRouter answered a design request
@@ -23,7 +23,56 @@ same way later (`openrouter,groq`).
 
 ---
 
-## Phase 9 — Analytics & Insights
+## Phase 10 — SaaS Administration & Production Launch
+
+Plan and acceptance criteria: [phases/PHASE_10.md](./phases/PHASE_10.md)
+
+### Implemented and verified
+- Settings: Account & security (profile, email verification, password, TOTP two-factor with recovery codes,
+  sign out everywhere, delete account), Workspace (rename, new team/agency workspace, delete), Team (invitations,
+  roles, transfer, leave), Plan & usage, Clients (agency), Audit log. Invitation page `/invite/:token`.
+- Plans (Free/Pro/Agency) enforced server-side; Stripe Checkout, Customer Portal and signed, idempotent webhook;
+  AI credits (monthly allowance + extra credits ledger; agency pool).
+- Platform admin `/admin` (2FA required): overview, users, workspaces (plan, credits, suspend), AI & services
+  (pause AI, test request, sign-ups), platform audit log; `npm run admin:grant`.
+- Resend bounce/complaint webhook (closes a Phase 8 gap); CSP + COOP; Dockerfile + compose; backup/restore;
+  load test; deployment, operations, security and performance docs; ADR 015–016.
+
+### Tests (all passing)
+| Suite | Count |
+|---|---|
+| Unit | 189 (Phase 9: 178) |
+| Integration (MySQL + mock AI + simulated Stripe) | 146 (Phase 9: 125) |
+| End-to-end (desktop + mobile) | 46 (Phase 9: 42) |
+`npm run lint`, `npm run build` pass; all Phase 0–9 suites pass.
+
+### Verification notes
+- Stripe was verified against a simulated Stripe API (request shapes, signatures, idempotency), not live Stripe:
+  no Stripe account/keys are available here. Live test mode needs `STRIPE_*` keys (see DEPLOYMENT.md).
+- Resend webhooks verified with locally signed payloads, not live Resend.
+- Docker: the image was built (with a sandbox-only proxy certificate added for the build), started, migrated and
+  answered `/api/v1/health`. Backup → restore verified with matching row counts.
+- The free hosting path (Vercel + TiDB Cloud) is documented but couldn't be exercised from here (no access to
+  Vercel/TiDB; TiDB uses a non-HTTPS port). Migrations were checked for TiDB-incompatible features (none).
+
+### Defects found and fixed during the phase
+- Existing tests assumed unlimited businesses/websites → they now use a Pro plan where the scenario needs it.
+- Settings forms kept the previous workspace's values after switching → components remount per workspace.
+- The invitation page read the clock during prerender → `connection()`.
+- The production image lacked the Prisma CLI and dotenv (pruned dev dependencies) → moved to dependencies.
+- Health check ignored `PORT` → uses it.
+
+### Known limitations
+- Instagram/TikTok/LinkedIn/X posting, AI images, card payments on customers' websites (Stripe Connect) and
+  automatic HTTPS for customers' own domains on a self-hosted server are not built (paid services / approvals).
+- Invoices are still sent by print/PDF, not emailed from the app.
+- Plan prices are labels that must match the Stripe prices you create.
+- Off-site backup copy needs the AWS CLI where the script runs (not in the compose backup container).
+- Vercel Hobby is for non-commercial use; time limits may cut very slow AI generations.
+
+---
+
+## Phase 9 — Analytics & Insights (APPROVED)
 
 Plan and acceptance criteria: [phases/PHASE_9.md](./phases/PHASE_9.md)
 

@@ -6,7 +6,7 @@ An AI-powered business launch, branding, marketing, design and growth platform.
 Users describe their business once; Brand AI reuses that **approved business
 context** across every studio.
 
-> **Status:** Phase 9 (Analytics & Insights) complete and awaiting approval.
+> **Status:** Phase 10 (SaaS administration & production launch) complete and awaiting approval.
 > See [docs/PHASE_STATUS.md](docs/PHASE_STATUS.md).
 
 ## Available today
@@ -119,12 +119,12 @@ docs/                   roadmap, status, architecture, database, API, workflow, 
 [Roadmap](docs/PHASE_ROADMAP.md) · [Status](docs/PHASE_STATUS.md) ·
 [Architecture](docs/SYSTEM_ARCHITECTURE.md) · [Database](docs/DATABASE_DESIGN.md) ·
 [API](docs/API_DOCUMENTATION.md) · [Workflow](docs/DEVELOPMENT_WORKFLOW.md) ·
-[Decisions](docs/decisions/README.md)
+[Decisions](docs/decisions/README.md) · [Deployment](docs/DEPLOYMENT.md) · [Operations](docs/OPERATIONS.md) ·
+[Security](docs/SECURITY.md) · [Performance](docs/PERFORMANCE.md)
 
-## Deployment (Vercel)
-Set env vars per Vercel environment (Development / Preview = staging / Production),
-each with its own managed MySQL database. Run `npm run db:deploy` against the
-target database before or during release (not automatically on build).
+## Deployment
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): free start on Vercel + TiDB Cloud, or one server with
+`docker compose` (app, MySQL, scheduler, daily backups). Operations: [docs/OPERATIONS.md](docs/OPERATIONS.md).
 Production startup refuses mock AI providers and the console email provider.
 
 ## Known limitations
@@ -132,12 +132,10 @@ Phase-specific limitations are listed in [docs/PHASE_STATUS.md](docs/PHASE_STATU
 - AI text uses free tiers (Gemini by default): rate-limited, quality varies by model, and each provider has its
   own data-use terms. Verified live on the Gemini free tier (both studios). If Google retires or overloads a
   model, the app falls back to the next one (`AI_TEXT_FALLBACK_MODELS`).
-- Email is not connected (needs Resend; free tier available).
+- Email needs Resend (free tier) in production; the console provider only logs messages.
   File storage works out of the box with the free `database` adapter (≤5 MB per file).
 - Logos are typographic/icon compositions rendered as vectors; wordmarks support Latin scripts only.
-- Email verification, MFA, OAuth sign-in and "log out of all devices" UI are not implemented yet
-  (the data model supports session revocation).
-- Team invitations and member management UI arrive with Phase 10 (roles are enforced already).
+- Sign-in is email + password (with optional two-factor); Google/OAuth sign-in isn't offered.
 - Rate limiting and the scheduler use MySQL (ADR 013). Client IP relies on proxy headers.
 - `npm audit` reports a high-severity ReDoS in `effect`, a dependency of the Prisma CLI config
   loader (build-time tool, no user input). The suggested fix is a Prisma downgrade; not applied.

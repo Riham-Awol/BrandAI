@@ -13,6 +13,7 @@ Schema: [`prisma/schema.prisma`](../prisma/schema.prisma) · Migrations: `prisma
 | `20261124114911_init_foundation` | 0 | Foundation tables below |
 | `20261124210213_phase8_automation`, `20261124211204_phase8_job_locks` | 8 | `automation_settings`, `integrations`, `scheduled_items`, `email_contacts`, `email_campaigns`, `email_deliveries`, `reminders`, `automation_rules`, `automation_runs`, `job_locks` |
 | `20261125041812_phase9_analytics` | 9 | `site_views`, `email_events`, `post_metrics`, `analytics_reports`, `analytics_settings` |
+| `…_phase10_accounts_team`, `…_phase10_billing_agency`, `…_phase10_email_suppression` | 10 | users (MFA, suspension), `workspace_invitations`, workspaces (`agency_workspace_id`, `suspended_at`), `subscriptions`, `ai_credit_entries`, `billing_events`, `agency_clients`, `platform_settings`, email delivery/contacts suppression |
 | `20261124202445_phase7_stationery` | 7 | `business_details`, `brand_materials`, `brand_material_revisions`, `business_documents`; `ProjectType.COMPANY_PROFILE`; enums `MaterialKind`, `DocumentType`, `DocumentStatus` |
 | `20261124172827_phase6_website_builder` | 6 | `websites`, `website_versions`, `website_submissions`; enums `WebsiteType`, `WebsiteStatus`, `DomainStatus` |
 | `20261124165358_phase5_design_studio` | 5 | `designs`, `design_revisions`; enum `DesignKind` |
@@ -83,6 +84,12 @@ businesses 1─* business_products | business_services | business_locations | bu
 | `email_events` *(P9)* | First `open` / `click` per email delivery | unique (`delivery_id`,`type`); idx (`workspace_id`,`created_at`), (`campaign_id`,`type`) | cascade with delivery; purged after retention |
 | `post_metrics` *(P9)* | Results of a published scheduled item entered by the team: reach, impressions, likes, comments, shares, saves, clicks (nullable ints) | unique `scheduled_item_id` | cascade |
 | `analytics_reports` *(P9)* | Saved report: period, `metrics` JSON snapshot (computed in code), `insights` JSON (checked AI output), `is_mock` | idx (`workspace_id`,`created_at`) | hard delete (`business:update`) |
+| `workspace_invitations` *(P10)* | Pending/accepted/revoked invitations; only the SHA-256 token hash is stored; 7-day expiry | unique `token_hash`; idx (`workspace_id`,`accepted_at`), `email` | cascade |
+| `subscriptions` *(P10)* | 1:1 workspace: `plan` (FREE/PRO/AGENCY), `status`, `source` (STRIPE/ADMIN), Stripe customer/subscription/price ids, period end | unique `workspace_id`, `stripe_customer_id`, `stripe_subscription_id` | cascade |
+| `ai_credit_entries` *(P10)* | Extra AI credits ledger: +purchase/+admin grant/−usage | unique (`kind`,`reference`); idx (`workspace_id`,`created_at`) | cascade |
+| `billing_events` *(P10)* | Processed Stripe event ids (idempotency) | PK `id` | — |
+| `agency_clients` *(P10)* | Agency ↔ client workspace link, contact, status, notes | unique `client_workspace_id` | cascade |
+| `platform_settings` *(P10)* | Key/value platform switches (`aiPaused`, `signupsOpen`) | PK `key` | — |
 | `analytics_settings` *(P9)* | Per workspace: `track_site_visits`, `track_email_engagement`, `retention_days` (30–730, default 395) | unique `workspace_id` | cascade |
 | `business_details` *(P7)* | 1:1 business: legal name, address, contact, registration/tax numbers, bank details, `currency`, `default_tax_rate_bp`, `payment_terms_days`, invoice/quote prefixes and next numbers | unique `business_id` | cascade with business |
 | `brand_materials` *(P7)* | Branded item: `kind` (card, letterhead, tshirt, uniform, bag, mug, label, packaging), `name`, `spec` JSON, `version`, `is_mock` | idx (`workspace_id`,`deleted_at`), (`business_id`,`kind`) | soft delete |
@@ -114,7 +121,7 @@ SUPERSEDED. Generations reference the context version they used.
 | Table | Phase | Reason |
 |---|---|---|
 | `integrations` (encrypted credentials) | 8 | Social/email integrations |
-| `subscriptions` | 10 | Payment provider not yet selected |
+| — | — | All master-spec tables now exist (`subscriptions` added in Phase 10). |
 
 ## Conventions for new tables
 - `id CHAR(36)` UUID, `workspace_id` (and `business_id` when relevant) with FK + index.
