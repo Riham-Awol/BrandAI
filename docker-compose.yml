@@ -1,33 +1,56 @@
-# Optional local services. Not used in production (use managed MySQL + S3-compatible storage).
-#   docker compose up -d mysql            # database only
-#   docker compose --profile storage up -d  # + MinIO (S3-compatible)
+# Self-hosted production stack: app + MySQL 8 + scheduler + daily backups.
+#   cp .env.example .env.production   # fill in real values (never commit it)
+#   docker compose --env-file .env.production up -d --build
+# Put a TLS-terminating reverse proxy (Caddy, Traefik, nginx) in front of port 3000.
 services:
-  mysql:
+  db:
     image: mysql:8.0
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root_local_only
+      MYSQL_DATABASE: brandai
       MYSQL_USER: brandai
-      MYSQL_PASSWORD: brandai_local_pw
-      MYSQL_DATABASE: brandai_dev
-    ports: ["3306:3306"]
-    volumes:
-      - mysql-data:/var/lib/mysql
-      - ./scripts/mysql-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    volumes: ["db-data:/var/lib/mysql"]
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot_local_only"]
-      interval: 5s
-      retries: 20
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 10
 
-  minio:
-    profiles: ["storage"]
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env.production
     environment:
-      MINIO_ROOT_USER: minio_local
-      MINIO_ROOT_PASSWORD: minio_local_pw
-    ports: ["9000:9000", "9001:9001"]
-    volumes: [minio-data:/data]
+      DATABASE_URL: mysql://brandai:${MYSQL_PASSWORD}@db:3306/brandai?connection_limit=10
+      NODE_ENV: production
+    ports: ["3000:3000"]
+    depends_on:
+      db: { condition: service_healthy }
+
+  # Calls the scheduler every 5 minutes (publishing, campaigns, reminders, retention).
+  scheduler:
+    image: curlimages/curl:8.11.1
+    restart: unless-stopped
+    environment:
+      CRON_SECRET: ${CRON_SECRET:?set CRON_SECRET}
+    entrypoint: ["/bin/sh", "-c", "while true; do curl -fsS -X POST -H \"Authorization: Bearer $$CRON_SECRET\" http://app:3000/api/v1/cron/run >/dev/null || echo 'scheduler run failed'; sleep 300; done"]
+    depends_on: [app]
+
+  # Daily compressed backup kept for 14 days (official MySQL image: has mysqldump).
+  backup:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: mysql://brandai:${MYSQL_PASSWORD}@db:3306/brandai
+      BACKUP_DIR: /backups
+      BACKUP_RETENTION_DAYS: "14"
+    entrypoint: ["/bin/bash", "-c", "while true; do /scripts/backup-db.sh || echo 'backup failed'; sleep 86400; done"]
+    volumes: ["./scripts:/scripts:ro", "backups:/backups"]
+    depends_on:
+      db: { condition: service_healthy }
 
 volumes:
-  mysql-data:
-  minio-data:
+  db-data:
+  backups:

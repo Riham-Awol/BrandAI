@@ -65,6 +65,8 @@ const envSchema = z.object({
 
   // Rate limiting
   RATE_LIMIT_STORE: z.enum(["database", "memory"]).default("database"),
+  // Load testing only; always 1 when APP_ENV=production.
+  RATE_LIMIT_MULTIPLIER: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(10000).default(1)),
 });
 
 let cached;

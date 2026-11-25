@@ -137,8 +137,9 @@ export async function sendCampaignBatch(workspaceId, campaignId, { now = new Dat
     if (!delivery) continue; // another runner already took this contact
     try {
       const msg = await renderFor(campaign, contact.unsubscribeToken, { deliveryId: delivery.id });
-      await sendEmail({ to: contact.email, subject: campaign.subject, text: msg.text, html: msg.html, headers: msg.headers });
-      await prisma.emailDelivery.update({ where: { id: delivery.id }, data: { status: provider === "console" ? "logged" : "sent", sentAt: new Date() } });
+      const result = await sendEmail({ to: contact.email, subject: campaign.subject, text: msg.text, html: msg.html, headers: msg.headers });
+      const messageId = provider === "resend" && typeof result?.id === "string" ? result.id.slice(0, 255) : null;
+      await prisma.emailDelivery.update({ where: { id: delivery.id }, data: { status: provider === "console" ? "logged" : "sent", sentAt: new Date(), providerMessageId: messageId } });
       sent++;
     } catch (error) {
       logger.warn("Campaign email failed", { campaignId, code: error?.code });

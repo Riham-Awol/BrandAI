@@ -87,7 +87,7 @@ export function AudienceManager({ workspaceId, businesses }) {
                   <tr key={c.id}>
                     <td className="py-2">{c.email}</td><td className="py-2">{c.name ?? "—"}</td>
                     <td className="py-2 text-xs text-muted-foreground">{c.consentSource} · {new Date(c.consentAt).toLocaleDateString()}</td>
-                    <td className="py-2">{c.unsubscribedAt ? <Badge variant="secondary">Unsubscribed</Badge> : <Badge variant="success">Subscribed</Badge>}</td>
+                    <td className="py-2">{c.unsubscribedAt ? <Badge variant="secondary">{c.suppressionReason === "bounced" ? "Bounced" : c.suppressionReason === "complained" ? "Spam complaint" : "Unsubscribed"}</Badge> : <Badge variant="success">Subscribed</Badge>}</td>
                     <td className="py-2 text-right"><Button size="icon" variant="ghost" aria-label={`Delete ${c.email}`} disabled={busy !== null} onClick={() => run(`d-${c.id}`, async () => { await apiRequest(`${base}/${c.id}`, { method: "DELETE" }); await load(); })}><Trash2 /></Button></td>
                   </tr>
                 ))}

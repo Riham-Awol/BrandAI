@@ -13,7 +13,7 @@ import { INSIGHTS_INSTRUCTIONS, aiInsightsSchema, checkInsights, metricsForPromp
 import { loadAnalyticsSettings } from "./tracking-service.js";
 import "./mock-fixtures.js";
 
-const DELIVERED = ["sent", "logged"];
+const DELIVERED = ["sent", "logged", "complained"]; // a spam complaint means it was delivered
 
 async function resolveFilter(scope, businessId) {
   if (!businessId) return { businessId: null, business: null };
@@ -63,7 +63,7 @@ async function emailData(workspaceId, businessId, range) {
       prisma.emailContact.count({ where: { workspaceId, ...(businessId ? { businessId } : {}), unsubscribedAt: { gte: from, lt: to } } }),
     ]);
     const n = (statuses) => byStatus.filter((s) => statuses.includes(s.status)).reduce((a, s) => a + s._count._all, 0);
-    return { delivered: n(DELIVERED), failed: n(["failed"]), logged: n(["logged"]), opened, clicked, unsubscribed };
+    return { delivered: n(DELIVERED), failed: n(["failed", "bounced"]), logged: n(["logged"]), opened, clicked, unsubscribed };
   };
   const [current, previous] = await Promise.all([summary(range.start, range.end), summary(range.prevStart, range.prevEnd)]);
   const deliveryWhere = { campaign: campaignWhere, createdAt: { gte: range.start, lt: range.end } };

@@ -253,3 +253,33 @@ describe("agency clients", () => {
     await expect(listClients(owner.user, owner.workspace.id)).rejects.toMatchObject({ code: "CONFLICT" });
   });
 });
+
+describe("email bounces and complaints (Resend webhook)", () => {
+  it("suppresses the address after a signed bounce; forged or unknown events change nothing", async () => {
+    const { handleEmailWebhook } = await import("@/modules/automation/bounce-service.js");
+    const { signSvixPayload } = await import("@/server/email/webhook.js");
+    const secret = `whsec_${Buffer.from("resend-test-secret").toString("base64")}`;
+    process.env.RESEND_WEBHOOK_SECRET = secret;
+    resetEnvCache();
+    try {
+      const owner = await createUser();
+      const biz = await createBusiness(owner.user, owner.workspace.id, { name: "Shop", stage: "STARTING" });
+      const contact = await prisma.emailContact.create({ data: { workspaceId: owner.workspace.id, businessId: biz.id, email: "gone@example.com", consentSource: "Form", consentAt: new Date(), unsubscribeToken: "t".repeat(43) } });
+      const campaign = await prisma.emailCampaign.create({ data: { workspaceId: owner.workspace.id, businessId: biz.id, name: "Launch", subject: "Hi", content: {}, status: "SENT", createdById: owner.user.id } });
+      await prisma.emailDelivery.create({ data: { campaignId: campaign.id, contactId: contact.id, status: "sent", provider: "resend", providerMessageId: "re_123" } });
+      const raw = JSON.stringify({ type: "email.bounced", data: { email_id: "re_123", to: ["gone@example.com"] } });
+      await expect(handleEmailWebhook(raw, signSvixPayload(raw, `whsec_${Buffer.from("other").toString("base64")}`))).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+      expect(await handleEmailWebhook(raw, signSvixPayload(raw, secret))).toEqual({ suppressed: "bounced" });
+      expect(await handleEmailWebhook(raw, signSvixPayload(raw, secret))).toEqual({ duplicate: true });
+      const c = await prisma.emailContact.findUnique({ where: { id: contact.id } });
+      expect(c).toMatchObject({ suppressionReason: "bounced" });
+      expect(c.unsubscribedAt).not.toBeNull();
+      const unknown = JSON.stringify({ type: "email.bounced", data: { email_id: "re_unknown" } });
+      expect(await handleEmailWebhook(unknown, signSvixPayload(unknown, secret))).toEqual({ ignored: true });
+    } finally {
+      delete process.env.RESEND_WEBHOOK_SECRET;
+      Object.assign(process.env, ENV);
+      resetEnvCache();
+    }
+  });
+});

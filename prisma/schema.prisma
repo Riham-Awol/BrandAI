@@ -1262,17 +1262,19 @@ model ScheduledItem {
 // Email audience. Contacts are added only with recorded consent; every email
 // carries a one-click unsubscribe link (token).
 model EmailContact {
-  id               String    @id @default(uuid()) @db.Char(36)
-  workspaceId      String    @map("workspace_id") @db.Char(36)
-  businessId       String    @map("business_id") @db.Char(36)
-  email            String    @db.VarChar(254)
-  name             String?   @db.VarChar(120)
-  consentSource    String    @map("consent_source") @db.VarChar(200)
-  consentAt        DateTime  @map("consent_at")
-  unsubscribedAt   DateTime? @map("unsubscribed_at")
-  unsubscribeToken String    @unique @map("unsubscribe_token") @db.Char(43)
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  id                String    @id @default(uuid()) @db.Char(36)
+  workspaceId       String    @map("workspace_id") @db.Char(36)
+  businessId        String    @map("business_id") @db.Char(36)
+  email             String    @db.VarChar(254)
+  name              String?   @db.VarChar(120)
+  consentSource     String    @map("consent_source") @db.VarChar(200)
+  consentAt         DateTime  @map("consent_at")
+  unsubscribedAt    DateTime? @map("unsubscribed_at")
+  // Phase 10: why sending stopped when not unsubscribed by the person (bounced / complained).
+  suppressionReason String?   @map("suppression_reason") @db.VarChar(20)
+  unsubscribeToken  String    @unique @map("unsubscribe_token") @db.Char(43)
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   workspace  Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   business   Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -1319,14 +1321,16 @@ model EmailCampaign {
 
 // One email to one contact (idempotent sending; counts against daily limits).
 model EmailDelivery {
-  id         String    @id @default(uuid()) @db.Char(36)
-  campaignId String    @map("campaign_id") @db.Char(36)
-  contactId  String    @map("contact_id") @db.Char(36)
-  status     String    @db.VarChar(20)
-  provider   String    @db.VarChar(40)
-  error      String?   @db.VarChar(300)
-  sentAt     DateTime? @map("sent_at")
-  createdAt  DateTime  @default(now()) @map("created_at")
+  id                String    @id @default(uuid()) @db.Char(36)
+  campaignId        String    @map("campaign_id") @db.Char(36)
+  contactId         String    @map("contact_id") @db.Char(36)
+  status            String    @db.VarChar(20)
+  provider          String    @db.VarChar(40)
+  // Phase 10: the email provider's message id (matches bounce/complaint webhooks).
+  providerMessageId String?   @unique @map("provider_message_id") @db.VarChar(255)
+  error             String?   @db.VarChar(300)
+  sentAt            DateTime? @map("sent_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
 
   campaign EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   contact  EmailContact  @relation(fields: [contactId], references: [id], onDelete: Cascade)

@@ -10,7 +10,7 @@ import { uuidSchema } from "@/validation/common.js";
 import { contactsFromCsv } from "./email-render.js";
 
 const token = () => randomBytes(32).toString("base64url");
-const select = { id: true, businessId: true, email: true, name: true, consentSource: true, consentAt: true, unsubscribedAt: true, createdAt: true };
+const select = { id: true, businessId: true, email: true, name: true, consentSource: true, consentAt: true, unsubscribedAt: true, suppressionReason: true, createdAt: true };
 const MAX_IMPORT = 5000;
 
 export async function listContacts(user, workspaceId, businessId) {

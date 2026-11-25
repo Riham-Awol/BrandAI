@@ -38,6 +38,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Throwaway CI secrets (generated per run, never stored)
+        run: |
+          echo "INTEGRATIONS_ENCRYPTION_KEY=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+          echo "CRON_SECRET=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
       - run: npm ci
       - run: npm run lint
       - run: npx prisma migrate deploy
@@ -48,3 +52,11 @@ jobs:
       - run: npm run test:e2e -- --trace off
         env:
           CI: "true"
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the production image (not pushed)
+        run: docker build -t brand-ai:ci .
