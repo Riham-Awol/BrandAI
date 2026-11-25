@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 
 export function RegisterForm() {
   const router = useRouter();
+  const params = useSearchParams();
   const [formError, setFormError] = useState(null);
   const { register, handleSubmit, setError, formState } = useForm({
     resolver: zodResolver(registerSchema),
@@ -40,7 +41,9 @@ export function RegisterForm() {
       router.replace("/login");
       return;
     }
-    router.replace("/dashboard");
+    // Only same-site relative paths (e.g. back to an invitation).
+    const next = params.get("callbackUrl");
+    router.replace(next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard");
     router.refresh();
   }
 

@@ -60,6 +60,8 @@ const envSchema = z.object({
   STRIPE_PRICE_PRO: optionalString,
   STRIPE_PRICE_AGENCY: optionalString,
   STRIPE_PRICE_CREDITS_500: optionalString,
+  // Phase 10: platform admins must have two-factor sign-in on (set "false" only for local development).
+  PLATFORM_ADMIN_REQUIRE_MFA: z.preprocess(emptyToUndefined, z.enum(["true", "false"]).default("true")),
 
   // Rate limiting
   RATE_LIMIT_STORE: z.enum(["database", "memory"]).default("database"),

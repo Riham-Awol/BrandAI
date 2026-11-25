@@ -25,6 +25,12 @@ export function toPublicUser(user) {
  * Input must already be validated with registerSchema.
  */
 export async function registerUser({ name, email, password }, request) {
+  // When a platform admin closes sign-ups, only invited people can create an account.
+  const signupsOpen = await prisma.platformSetting.findUnique({ where: { key: "signupsOpen" } });
+  if (signupsOpen?.value === false) {
+    const invited = await prisma.workspaceInvitation.count({ where: { email, acceptedAt: null, revokedAt: null, expiresAt: { gt: new Date() } } });
+    if (!invited) throw Errors.forbidden("Sign-ups are closed right now. Ask for an invitation.");
+  }
   const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
   if (existing) throw Errors.conflict("An account with this email already exists.");
 

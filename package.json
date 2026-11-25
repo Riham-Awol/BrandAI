@@ -19,7 +19,8 @@
     "postinstall": "prisma generate",
     "format": "prettier --write .",
     "check": "npm run lint && npm run test && npm run build",
-    "postdb:migrate": "prisma generate"
+    "postdb:migrate": "prisma generate",
+    "admin:grant": "node scripts/grant-platform-admin.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.13.0",

@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { LogOut } from "lucide-react";
+import { LogOut, Settings, ShieldCheck } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
@@ -22,6 +23,15 @@ export function UserMenu({ user }) {
           <span className="block text-sm font-semibold text-foreground">{user.name}</span>
           <span className="block truncate font-normal">{user.email}</span>
         </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/settings"><Settings /> Account & settings</Link>
+        </DropdownMenuItem>
+        {user.isPlatformAdmin && (
+          <DropdownMenuItem asChild>
+            <Link href="/admin"><ShieldCheck /> Platform admin</Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => signOut({ callbackUrl: "/login" })}>
           <LogOut />
