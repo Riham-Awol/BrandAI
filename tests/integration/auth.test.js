@@ -79,6 +79,6 @@ describe("password recovery", () => {
     const { user, email } = await createUser();
     await requestPasswordReset({ email }, req);
     await requestPasswordReset({ email }, req);
-    expect(await prisma.authToken.count({ where: { userId: user.id, usedAt: null } })).toBe(1);
+    expect(await prisma.authToken.count({ where: { userId: user.id, type: "PASSWORD_RESET", usedAt: null } })).toBe(1);
   });
 });

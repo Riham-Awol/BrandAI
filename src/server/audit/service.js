@@ -19,6 +19,17 @@ export const AUDIT_ACTIONS = {
   AI_GENERATION: "ai.generation",
   FILE_UPLOADED: "file.uploaded",
   FILE_DELETED: "file.deleted",
+  // Phase 10
+  PROFILE_UPDATED: "user.profile_updated",
+  PASSWORD_CHANGED: "user.password_changed",
+  SESSIONS_REVOKED: "user.sessions_revoked",
+  EMAIL_VERIFICATION_SENT: "user.email_verification_sent",
+  EMAIL_VERIFIED: "user.email_verified",
+  MFA_ENABLED: "user.mfa_enabled",
+  MFA_DISABLED: "user.mfa_disabled",
+  MFA_RECOVERY_USED: "user.mfa_recovery_used",
+  MFA_RECOVERY_REGENERATED: "user.mfa_recovery_regenerated",
+  ACCOUNT_DELETED: "user.account_deleted",
 };
 
 /**

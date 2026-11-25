@@ -29,7 +29,15 @@ const providers = {
   },
 };
 
+let transportOverride = null;
+
+/** Tests only: capture outgoing messages instead of using the configured provider. */
+export function setEmailTransport(fn) {
+  transportOverride = fn;
+}
+
 export async function sendEmail(message) {
+  if (transportOverride) return transportOverride(message);
   const env = getEnv();
   return providers[env.EMAIL_PROVIDER](message, env);
 }

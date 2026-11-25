@@ -30,7 +30,7 @@ export const getCurrentUser = cache(async () => {
   if (!token?.uid) return null;
 
   const user = await prisma.user.findUnique({ where: { id: token.uid } });
-  if (!user || user.deletedAt || token.sv !== user.sessionVersion) return null;
+  if (!user || user.deletedAt || user.suspendedAt || token.sv !== user.sessionVersion) return null;
   return toPublicUser(user);
 });
 

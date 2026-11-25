@@ -27,7 +27,7 @@ export const authOptions = {
   providers: [
     CredentialsProvider({
       name: "Email and password",
-      credentials: { email: { label: "Email", type: "email" }, password: { label: "Password", type: "password" } },
+      credentials: { email: { label: "Email", type: "email" }, password: { label: "Password", type: "password" }, otp: { label: "Code", type: "text" } },
       async authorize(credentials, req) {
         const parsed = loginSchema.safeParse(credentials ?? {});
         if (!parsed.success) return null;
@@ -35,7 +35,14 @@ export const authOptions = {
         // Limit per IP and per account to slow brute-force and credential stuffing.
         await enforceRateLimit("login", `ip:${request.ip}`);
         await enforceRateLimit("login", `email:${hashToken(parsed.data.email)}`);
-        const user = await verifyCredentials(parsed.data, request);
+        let user;
+        try {
+          user = await verifyCredentials(parsed.data, request);
+        } catch (error) {
+          // Surfaced to the sign-in form as result.error (no account details leak: the password was correct).
+          if (error?.code === "MFA_REQUIRED" || error?.code === "MFA_INVALID") throw new Error(error.code);
+          throw error;
+        }
         if (!user) return null;
         return { id: user.id, email: user.email, name: user.name, sessionVersion: user.sessionVersion };
       },

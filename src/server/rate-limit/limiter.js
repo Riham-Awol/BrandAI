@@ -33,4 +33,8 @@ export const RATE_LIMITS = {
   siteMedia: { limit: 300, windowMs: 60 * 1000 },
   // Phase 9: page-view pixel and email open/click tracking, per visitor IP.
   tracking: { limit: 120, windowMs: 60 * 1000 },
+  // Phase 10
+  emailVerify: { limit: 3, windowMs: 60 * 60 * 1000 },
+  invite: { limit: 30, windowMs: 60 * 60 * 1000 },
+  billing: { limit: 20, windowMs: 10 * 60 * 1000 },
 };

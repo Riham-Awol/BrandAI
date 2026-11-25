@@ -12,7 +12,7 @@ export function SidebarNav({ onNavigate }) {
     <nav aria-label="Main" className="flex flex-col gap-6">
       <ul className="grid gap-1">
         {PRIMARY_NAV.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href;
+          const active = href === "/dashboard" ? pathname === href : pathname.startsWith(href);
           return (
             <li key={href}>
               <Link
