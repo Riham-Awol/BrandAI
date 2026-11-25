@@ -17,6 +17,8 @@ import { aiCampaignSchema } from "./schemas.js";
 import { renderCampaignEmail } from "./email-render.js";
 import { loadSettings } from "./settings-service.js";
 import { logRun } from "./history.js";
+import { signDeliveryToken } from "@/modules/analytics/tracking.js";
+import { loadAnalyticsSettings } from "@/modules/analytics/tracking-service.js";
 import "./mock-fixtures.js";
 
 const select = { id: true, businessId: true, name: true, subject: true, preheader: true, content: true, status: true, sentCount: true, failedCount: true, sentAt: true, isMock: true, createdAt: true, updatedAt: true, business: { select: { id: true, name: true } } };
@@ -80,12 +82,17 @@ export async function draftCampaign(user, workspaceId, { businessId, brief }, re
   return { subject: clip(d.subject, 200), preheader: clip(d.preheader, 200), content: { heading: clip(d.heading, 160), paragraphs: d.paragraphs.map((p) => clip(p, 1500)).filter(Boolean).slice(0, 8), ctaLabel: clip(d.ctaLabel, 40), ctaUrl: "" }, isMock: result.isMock };
 }
 
-async function renderFor(campaign, contactToken) {
+async function renderFor(campaign, contactToken, { deliveryId = null } = {}) {
   const business = await prisma.business.findUnique({ where: { id: campaign.businessId }, select: { id: true, name: true } });
   const [brand, details] = await Promise.all([resolveBrand(business.id, business), loadDetails(business.id)]);
   const app = getEnv().APP_URL.replace(/\/+$/, "");
   const unsubscribeUrl = `${app}/u/${contactToken}`;
-  const { html, text } = renderCampaignEmail({ subject: campaign.subject, preheader: campaign.preheader, content: campaign.content, brandName: details?.legalName || brand.name, colors: brand.colors, senderAddress: addressLines(details).join(", "), unsubscribeUrl });
+  let tracking = {};
+  if (deliveryId && (await loadAnalyticsSettings(campaign.workspaceId)).trackEmailEngagement) {
+    const token = signDeliveryToken(getEnv().NEXTAUTH_SECRET ?? "dev", deliveryId);
+    tracking = { openPixelUrl: `${app}/api/v1/email/${token}/open`, ctaHref: campaign.content.ctaUrl ? `${app}/api/v1/email/${token}/click` : undefined };
+  }
+  const { html, text } = renderCampaignEmail({ subject: campaign.subject, preheader: campaign.preheader, content: campaign.content, brandName: details?.legalName || brand.name, colors: brand.colors, senderAddress: addressLines(details).join(", "), unsubscribeUrl, ...tracking });
   return { html, text, unsubscribeUrl, headers: { "List-Unsubscribe": `<${app}/api/v1/unsubscribe/${contactToken}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } };
 }
 
@@ -129,7 +136,7 @@ export async function sendCampaignBatch(workspaceId, campaignId, { now = new Dat
     const delivery = await prisma.emailDelivery.create({ data: { campaignId, contactId: contact.id, status: "sending", provider } }).catch(() => null);
     if (!delivery) continue; // another runner already took this contact
     try {
-      const msg = await renderFor(campaign, contact.unsubscribeToken);
+      const msg = await renderFor(campaign, contact.unsubscribeToken, { deliveryId: delivery.id });
       await sendEmail({ to: contact.email, subject: campaign.subject, text: msg.text, html: msg.html, headers: msg.headers });
       await prisma.emailDelivery.update({ where: { id: delivery.id }, data: { status: provider === "console" ? "logged" : "sent", sentAt: new Date() } });
       sent++;

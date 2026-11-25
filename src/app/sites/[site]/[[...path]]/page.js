@@ -1,8 +1,10 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { connection } from "next/server";
 import { getPublishedSite } from "@/modules/website/service.js";
 import { SiteRenderer } from "@/modules/website/components/site/site-renderer";
+import { referrerSource } from "@/modules/analytics/tracking.js";
 
 /**
  * Public, published websites: /sites/:slug/:page, or a verified custom domain
@@ -42,7 +44,12 @@ async function Site({ params, searchParams }) {
   if (!page) notFound();
   const base = data.viaDomain ? "" : `/sites/${data.website.slug}`;
   const item = typeof query.item === "string" ? query.item.slice(0, 200) : undefined;
+  // Cookieless page-view pixel: the source is worked out here from the page request's Referer / utm_source.
+  const h = await headers();
+  const source = referrerSource({ referer: h.get("referer"), ownHost: h.get("x-forwarded-host") ?? h.get("host"), utmSource: typeof query.utm_source === "string" ? query.utm_source : undefined });
+  const pixel = `/api/v1/sites/${encodeURIComponent(site)}/px?p=${page.slug}${source ? `&s=${encodeURIComponent(source)}` : ""}`;
   return (
+    <>
     <SiteRenderer
       config={data.config}
       brand={data.brand}
@@ -55,5 +62,8 @@ async function Site({ params, searchParams }) {
       orderItem={item}
       year={new Date(data.publishedAt).getFullYear()}
     />
+    {/* eslint-disable-next-line @next/next/no-img-element -- a tracking pixel, not content */}
+    <img src={pixel} alt="" width={1} height={1} aria-hidden="true" className="pointer-events-none absolute bottom-0 left-0 size-px opacity-0" />
+    </>
   );
 }

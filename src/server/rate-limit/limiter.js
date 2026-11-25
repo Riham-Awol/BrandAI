@@ -31,4 +31,6 @@ export const RATE_LIMITS = {
   // Public website forms: per visitor IP.
   siteForm: { limit: 5, windowMs: 10 * 60 * 1000 },
   siteMedia: { limit: 300, windowMs: 60 * 1000 },
+  // Phase 9: page-view pixel and email open/click tracking, per visitor IP.
+  tracking: { limit: 120, windowMs: 60 * 1000 },
 };

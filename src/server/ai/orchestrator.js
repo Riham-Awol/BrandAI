@@ -99,7 +99,7 @@ export async function generateText({ user, workspaceId, businessId, module, task
     ]);
     await recordAudit({ action: AUDIT_ACTIONS.AI_GENERATION, actorId: user.id, workspaceId, entityType: "ai_generation", entityId: generation.id, metadata: { module, task }, request });
 
-    return { generationId: generation.id, text: result.text, data: result.data, model: result.model, isMock: provider.isMock === true, usage: { ...result.usage, costMicroUsd: cost.toString() } };
+    return { generationId: generation.id, text: result.text, data: result.data, model: result.model, provider: result.provider ?? provider.name, isMock: provider.isMock === true, usage: { ...result.usage, costMicroUsd: cost.toString() } };
   } catch (error) {
     await prisma.aiGeneration
       .update({

@@ -13,11 +13,13 @@ function accent(colors) {
   return c ?? "#302442";
 }
 
-export function renderCampaignEmail({ subject, preheader, content, brandName, colors, senderAddress, unsubscribeUrl }) {
+export function renderCampaignEmail({ subject, preheader, content, brandName, colors, senderAddress, unsubscribeUrl, ctaHref, openPixelUrl }) {
   const a = accent(colors);
+  // Tracking (optional): the button points at the signed click redirect, which forwards to content.ctaUrl.
+  const href = ctaHref || content.ctaUrl;
   const paragraphs = content.paragraphs.filter(Boolean);
   const cta = content.ctaLabel && content.ctaUrl
-    ? `<tr><td style="padding:8px 32px 24px"><a href="${esc(content.ctaUrl)}" style="display:inline-block;background:${a};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:999px">${esc(content.ctaLabel)}</a></td></tr>`
+    ? `<tr><td style="padding:8px 32px 24px"><a href="${esc(href)}" style="display:inline-block;background:${a};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:999px">${esc(content.ctaLabel)}</a></td></tr>`
     : "";
   const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(subject)}</title></head>
 <body style="margin:0;background:#f4f2f7;font-family:Helvetica,Arial,sans-serif;color:#1d1b22">
@@ -29,8 +31,8 @@ ${content.heading ? `<tr><td style="padding:28px 32px 8px;font-size:24px;line-he
 ${paragraphs.map((p) => `<tr><td style="padding:8px 32px;font-size:16px;line-height:1.6">${esc(p).replace(/\n/g, "<br>")}</td></tr>`).join("\n")}
 ${cta}
 <tr><td style="padding:24px 32px;border-top:1px solid #e6e3ea;font-size:12px;line-height:1.5;color:#6b6875">${esc(brandName)}${senderAddress ? ` · ${esc(senderAddress)}` : ""}<br>You're receiving this because you agreed to hear from ${esc(brandName)}. <a href="${esc(unsubscribeUrl)}" style="color:#6b6875">Unsubscribe</a></td></tr>
-</table></td></tr></table></body></html>`;
-  const text = [content.heading, ...paragraphs, content.ctaLabel && content.ctaUrl ? `${content.ctaLabel}: ${content.ctaUrl}` : "", "—", `${brandName}${senderAddress ? `, ${senderAddress}` : ""}`, `Unsubscribe: ${unsubscribeUrl}`].filter(Boolean).join("\n\n");
+</table></td></tr></table>${openPixelUrl ? `<img src="${esc(openPixelUrl)}" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0">` : ""}</body></html>`;
+  const text = [content.heading, ...paragraphs, content.ctaLabel && content.ctaUrl ? `${content.ctaLabel}: ${href}` : "", "—", `${brandName}${senderAddress ? `, ${senderAddress}` : ""}`, `Unsubscribe: ${unsubscribeUrl}`].filter(Boolean).join("\n\n");
   return { html, text };
 }
 

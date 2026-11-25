@@ -134,3 +134,18 @@ test("mobile layout: automation calendar agenda and settings fit the screen", as
   overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test("mobile layout: analytics dashboard and post results fit the screen", async ({ page }) => {
+  await registerViaUi(page, newUser());
+  const ws = (await (await page.request.get("/api/v1/me")).json()).data.workspaces[0].id;
+  await page.request.post(`/api/v1/workspaces/${ws}/businesses`, { data: { name: "Mobile Shop", stage: "STARTING" } });
+  await page.goto("/analytics");
+  await expect(page.getByRole("heading", { name: "Website traffic & conversions" })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "30 days" })).toBeChecked();
+  let overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+  await page.goto("/analytics/settings");
+  await expect(page.getByLabel(/Count website visits/)).toBeChecked();
+  overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+});

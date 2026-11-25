@@ -6,7 +6,7 @@ An AI-powered business launch, branding, marketing, design and growth platform.
 Users describe their business once; Brand AI reuses that **approved business
 context** across every studio.
 
-> **Status:** Phase 8 (Calendar & Automation) complete and awaiting approval.
+> **Status:** Phase 9 (Analytics & Insights) complete and awaiting approval.
 > See [docs/PHASE_STATUS.md](docs/PHASE_STATUS.md).
 
 ## Available today
@@ -38,6 +38,10 @@ context** across every studio.
   campaigns to a consent-based audience, reminders, preset automation rules and a full history — under three
   modes (draft only, approval required, authorized automation with limits). Channels: signed webhooks (Zapier,
   Make, n8n), Telegram and Facebook Pages. Set `CRON_SECRET` and call `POST /api/v1/cron/run` on a schedule.
+- **Analytics & Insights** (`/analytics`): website traffic and conversions (cookieless page-view counting on
+  published sites), email opens and clicks, publishing reliability, social engagement (results entered from each
+  platform's insights), sales from paid invoices and quotes — each against the previous period — plus AI
+  recommendations based only on those computed numbers, saved reports, CSV/Markdown export and a printable report.
 
 **AI is free by default.** Brand AI uses Google Gemini's free tier (`AI_TEXT_PROVIDER=gemini`). Get a free
 key at https://aistudio.google.com/apikey and set `GEMINI_API_KEY`. Other free options: Groq, OpenRouter free
@@ -125,7 +129,6 @@ Production startup refuses mock AI providers and the console email provider.
 
 ## Known limitations
 Phase-specific limitations are listed in [docs/PHASE_STATUS.md](docs/PHASE_STATUS.md).
-- Live AI output has not been verified yet (no API key in the build environment); AI flows are tested with the mock provider.
 - AI text uses free tiers (Gemini by default): rate-limited, quality varies by model, and each provider has its
   own data-use terms. Verified live on the Gemini free tier (both studios). If Google retires or overloads a
   model, the app falls back to the next one (`AI_TEXT_FALLBACK_MODELS`).
@@ -135,7 +138,7 @@ Phase-specific limitations are listed in [docs/PHASE_STATUS.md](docs/PHASE_STATU
 - Email verification, MFA, OAuth sign-in and "log out of all devices" UI are not implemented yet
   (the data model supports session revocation).
 - Team invitations and member management UI arrive with Phase 10 (roles are enforced already).
-- Rate limiting uses MySQL until Redis is introduced (Phase 8). Client IP relies on proxy headers.
+- Rate limiting and the scheduler use MySQL (ADR 013). Client IP relies on proxy headers.
 - `npm audit` reports a high-severity ReDoS in `effect`, a dependency of the Prisma CLI config
   loader (build-time tool, no user input). The suggested fix is a Prisma downgrade; not applied.
 - shadcn components were written by hand because the shadcn registry was unreachable from the

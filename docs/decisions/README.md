@@ -17,3 +17,4 @@ Template: Context · Options · Decision · Consequences.
 | [011](./011-cross-provider-ai-fallback.md) | Cross-provider fallback (Gemini → OpenRouter free models); OpenRouter free-only | Accepted |
 | [012](./012-website-rendering-and-domains.md) | Websites as structured configs rendered by controlled components; versioned publishing; DNS-verified custom domains | Accepted |
 | [013](./013-automation-policy-and-scheduler.md) | Permission-based automation (3 modes) and a MySQL scheduler instead of Redis (supersedes the Redis part of 006) | Accepted |
+| [014](./014-privacy-friendly-analytics.md) | Cookieless first-party analytics; signed email tracking; AI explains code-computed metrics | Accepted |

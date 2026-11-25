@@ -30,6 +30,8 @@ export const PERMISSIONS = {
   AUTOMATION_APPROVE: "automation:approve",
   AUTOMATION_MANAGE: "automation:manage",
   AUTOMATION_AUTOPILOT: "automation:autopilot",
+  // Phase 9: workspace-wide tracking and data-retention choices.
+  ANALYTICS_MANAGE: "analytics:manage",
 };
 
 const P = PERMISSIONS;
@@ -47,6 +49,7 @@ const ADMIN = [
   P.WEBSITE_PUBLISH,
   P.AUTOMATION_APPROVE,
   P.AUTOMATION_MANAGE,
+  P.ANALYTICS_MANAGE,
 ];
 const OWNER = [...ADMIN, P.WORKSPACE_DELETE, P.BILLING_MANAGE, P.AUTOMATION_AUTOPILOT];
 

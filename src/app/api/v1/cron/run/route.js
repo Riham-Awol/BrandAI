@@ -4,6 +4,7 @@ import { route } from "@/server/http/route-handler.js";
 import { Errors } from "@/server/errors.js";
 import { getEnv } from "@/server/config/env.js";
 import { runAutomation } from "@/modules/automation/runner.js";
+import { purgeOldTracking } from "@/modules/analytics/tracking-service.js";
 
 export const maxDuration = 300;
 
@@ -18,5 +19,8 @@ export const POST = route({ auth: false, rateLimit: false }, async ({ request })
   const given = Buffer.from((request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, ""));
   const expected = Buffer.from(secret);
   if (given.length !== expected.length || !timingSafeEqual(given, expected)) throw Errors.unauthenticated("Invalid scheduler token.");
-  return ok(await runAutomation());
+  const automation = await runAutomation();
+  // Analytics retention: tracking rows past each workspace's retention period are deleted.
+  const retention = await purgeOldTracking();
+  return ok({ ...automation, retention });
 });

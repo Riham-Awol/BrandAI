@@ -11,6 +11,6 @@ export const PRODUCT_PHASES = [
   { phase: 6, key: "website", title: "Website Builder", summary: "Generate, edit and publish business websites.", available: true, href: "/websites" },
   { phase: 7, key: "stationery", title: "Stationery & Merchandise", summary: "Business cards, invoices, packaging and merch.", available: true, href: "/stationery" },
   { phase: 8, key: "automation", title: "Calendar & Automation", summary: "Scheduling, approvals and permission-based publishing.", available: true, href: "/automation" },
-  { phase: 9, key: "analytics", title: "Analytics & Insights", summary: "Performance reports and AI recommendations.", available: false },
+  { phase: 9, key: "analytics", title: "Analytics & Insights", summary: "Performance reports and AI recommendations.", available: true, href: "/analytics" },
   { phase: 10, key: "admin", title: "Teams, Agencies & Billing", summary: "Clients, roles, plans and AI credits.", available: false },
 ];

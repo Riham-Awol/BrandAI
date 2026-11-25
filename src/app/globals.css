@@ -37,6 +37,9 @@
   --ring: #b9a0d2;
 
   --chart-bar: #7b5ea7; /* validated: contrast ≥3:1 on #ffffff, in lightness/chroma band */
+  /* Phase 9 categorical slots 1–2 (validated on #ffffff; slot 2 <3:1 → legend, end labels and table view always shown) */
+  --chart-1: #257de0;
+  --chart-2: #f47230;
   --sidebar: #fbf9fd;
   --sidebar-foreground: #17151c;
   --sidebar-border: #ebe3f2;
@@ -70,6 +73,8 @@
   --ring: #b9a0d2;
 
   --chart-bar: #9d7ad9; /* validated against dark card surface #1b1722 */
+  --chart-1: #338ced; /* validated against dark card surface #1b1722 */
+  --chart-2: #e76624;
   --sidebar: #16131c;
   --sidebar-foreground: #f2eef7;
   --sidebar-border: #262030;
@@ -104,6 +109,8 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-chart-bar: var(--chart-bar);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-border: var(--sidebar-border);

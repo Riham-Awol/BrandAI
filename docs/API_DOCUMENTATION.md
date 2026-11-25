@@ -231,6 +231,28 @@ Base: `/workspaces/:ws/automation`.
 Public: `POST /api/v1/cron/run` (Bearer `CRON_SECRET`); `POST /api/v1/unsubscribe/:token` (one-click; `?redirect=1`
 for the form); page `/u/:token`. Notifications: `GET /api/v1/notifications`, `PATCH { ids }`.
 
+### Analytics & Insights (Phase 9)
+Base: `/workspaces/:ws/analytics`. Query `days=7|30|90` (default 30) and optional `businessId` (another
+workspace's business → 404). Numbers are computed in code; money is returned as minor-unit strings.
+
+| Method | Path | Permission | Body / notes |
+|---|---|---|---|
+| GET | `` (base) | `business:read` | Report: `period`, `website` (`kpis`, `daily`, `pages`, `sources`, `devices`), `email`, `publishing`, `engagement`, `sales` (`paid`, `outstanding`), `gaps` |
+| GET | `/export?days&businessId&format=csv\|md` | `business:read` | file download (CSV cells guarded against formula injection) |
+| POST | `/insights` | `ai:generate` | `{ days, businessId? }` → saved report with checked AI insights (`verified` flags, unknown metric keys dropped) |
+| GET | `/reports?businessId` · `/reports/:id` | `business:read` | latest 20 · one report |
+| DELETE | `/reports/:id` | `business:update` | |
+| GET | `/reports/:id/export?format=md\|csv` | `business:read` | |
+| GET | `/posts?days&businessId` | `business:read` | published posts with entered results, `canEdit` |
+| PUT | `/posts/:itemId/metrics` | `business:update` | `{ reach?, impressions?, likes?, comments?, shares?, saves?, clicks? }` (≥ 1 number; published, non-email items only) |
+| GET / PUT | `/settings` | read / `analytics:manage` | `{ trackSiteVisits, trackEmailEngagement, retentionDays (30–730) }` |
+
+Public tracking (no auth, rate-limited per IP, always 200 so failures are invisible):
+`GET /api/v1/sites/:site/px?p=<page slug>&s=<source>` → 1×1 GIF (bots, DNT/GPC browsers, unknown pages and
+tracking-off workspaces are ignored); `GET /api/v1/email/:token/open` → GIF; `GET /api/v1/email/:token/click` →
+302 to the campaign's stored https link (token = HMAC-signed delivery id; any other input is ignored, so it can't
+redirect elsewhere). Printable report page: `/print/analytics/:reportId`.
+
 ### Brand hub & assets (Phase 2)
 | Method | Path | Permission | Notes |
 |---|---|---|---|
@@ -248,6 +270,7 @@ Context sections: `basics`, `offering`, `audience`, `goals`, `competitors`,
 
 `website:publish` (Phase 6): OWNER, ADMIN — publish/unpublish websites and manage custom domains.
 `automation:approve`, `automation:manage` (Phase 8): OWNER, ADMIN. `automation:autopilot` (Phase 8): OWNER only.
+`analytics:manage` (Phase 9): OWNER, ADMIN — tracking switches and data retention.
 
 | Permission | VIEWER | EDITOR | ADMIN | OWNER |
 |---|:-:|:-:|:-:|:-:|

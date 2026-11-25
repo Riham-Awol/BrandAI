@@ -121,6 +121,11 @@ model Workspace {
   reminders          Reminder[]
   automationRules    AutomationRule[]
   automationRuns     AutomationRun[]
+  siteViews          SiteView[]
+  emailEvents        EmailEvent[]
+  postMetrics        PostMetric[]
+  analyticsReports   AnalyticsReport[]
+  analyticsSettings  AnalyticsSettings?
 
   @@index([ownerId])
   @@index([deletedAt])
@@ -182,30 +187,32 @@ model Business {
   updatedAt        DateTime       @updatedAt @map("updated_at")
   deletedAt        DateTime?      @map("deleted_at")
 
-  workspace       Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy       User                      @relation("BusinessCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  contextVersions BusinessContextVersion[]
-  aiGenerations   AiGeneration[]
-  storedFiles     StoredFile[]
-  projects        Project[]
-  brandIdentities BrandIdentity[]
-  brandAssets     BrandAsset[]
-  marketingPlans  MarketingPlan[]
-  products        BusinessProduct[]
-  services        BusinessService[]
-  locations       BusinessLocation[]
-  audiences       BusinessAudience[]
-  problems        BusinessCustomerProblem[]
-  competitors     Competitor[]
-  goals           BusinessGoal[]
-  designs         Design[]
-  websites        Website[]
-  materials       BrandMaterial[]
-  documents       BusinessDocument[]
-  details         BusinessDetails?
-  scheduledItems  ScheduledItem[]
-  emailContacts   EmailContact[]
-  emailCampaigns  EmailCampaign[]
+  workspace        Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy        User                      @relation("BusinessCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  contextVersions  BusinessContextVersion[]
+  aiGenerations    AiGeneration[]
+  storedFiles      StoredFile[]
+  projects         Project[]
+  brandIdentities  BrandIdentity[]
+  brandAssets      BrandAsset[]
+  marketingPlans   MarketingPlan[]
+  products         BusinessProduct[]
+  services         BusinessService[]
+  locations        BusinessLocation[]
+  audiences        BusinessAudience[]
+  problems         BusinessCustomerProblem[]
+  competitors      Competitor[]
+  goals            BusinessGoal[]
+  designs          Design[]
+  websites         Website[]
+  materials        BrandMaterial[]
+  documents        BusinessDocument[]
+  details          BusinessDetails?
+  scheduledItems   ScheduledItem[]
+  emailContacts    EmailContact[]
+  emailCampaigns   EmailCampaign[]
+  postMetrics      PostMetric[]
+  analyticsReports AnalyticsReport[]
 
   @@index([workspaceId, deletedAt])
   @@index([createdById])
@@ -934,6 +941,7 @@ model Website {
   business    Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
   versions    WebsiteVersion[]
   submissions WebsiteSubmission[]
+  views       SiteView[]
 
   @@index([workspaceId, deletedAt])
   @@index([businessId])
@@ -1223,6 +1231,7 @@ model ScheduledItem {
   workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   business    Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
   integration Integration? @relation(fields: [integrationId], references: [id], onDelete: SetNull)
+  metrics     PostMetric?
 
   @@index([status, scheduledAt])
   @@index([workspaceId, scheduledAt])
@@ -1301,6 +1310,7 @@ model EmailDelivery {
 
   campaign EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   contact  EmailContact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  events   EmailEvent[]
 
   @@unique([campaignId, contactId])
   @@index([createdAt])
@@ -1373,4 +1383,107 @@ model JobLock {
   lockedUntil DateTime @map("locked_until")
 
   @@map("job_locks")
+}
+
+// ─── Phase 9: Analytics & Business Intelligence ──────────────────────────────
+
+/// One page view of a published site. Cookieless: visitor_hash is a salted
+/// HMAC of (day, site, IP, user agent) that rotates daily; the IP is never stored.
+model SiteView {
+  id           BigInt   @id @default(autoincrement())
+  websiteId    String   @map("website_id") @db.Char(36)
+  workspaceId  String   @map("workspace_id") @db.Char(36)
+  day          DateTime @db.Date
+  path         String   @db.VarChar(64)
+  referrerHost String?  @map("referrer_host") @db.VarChar(253)
+  visitorHash  String   @map("visitor_hash") @db.Char(64)
+  device       String   @db.VarChar(10)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  website   Website   @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([websiteId, day])
+  @@index([workspaceId, day])
+  @@index([createdAt])
+  @@map("site_views")
+}
+
+/// First open / first click of a campaign email (one row per delivery and type).
+model EmailEvent {
+  id          BigInt   @id @default(autoincrement())
+  deliveryId  String   @map("delivery_id") @db.Char(36)
+  campaignId  String   @map("campaign_id") @db.Char(36)
+  workspaceId String   @map("workspace_id") @db.Char(36)
+  type        String   @db.VarChar(10)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  delivery  EmailDelivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  workspace Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([deliveryId, type])
+  @@index([workspaceId, createdAt])
+  @@index([campaignId, type])
+  @@map("email_events")
+}
+
+/// Results of a published post, entered by the team from the platform's insights.
+model PostMetric {
+  id              String   @id @default(uuid()) @db.Char(36)
+  workspaceId     String   @map("workspace_id") @db.Char(36)
+  businessId      String   @map("business_id") @db.Char(36)
+  scheduledItemId String   @unique @map("scheduled_item_id") @db.Char(36)
+  reach           Int?
+  impressions     Int?
+  likes           Int?
+  comments        Int?
+  shares          Int?
+  saves           Int?
+  clicks          Int?
+  recordedById    String   @map("recorded_by_id") @db.Char(36)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  business  Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  item      ScheduledItem @relation(fields: [scheduledItemId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@map("post_metrics")
+}
+
+/// A saved performance report: the computed metrics snapshot plus AI insights.
+model AnalyticsReport {
+  id          String   @id @default(uuid()) @db.Char(36)
+  workspaceId String   @map("workspace_id") @db.Char(36)
+  businessId  String?  @map("business_id") @db.Char(36)
+  periodDays  Int      @map("period_days")
+  periodStart DateTime @map("period_start")
+  periodEnd   DateTime @map("period_end")
+  metrics     Json
+  insights    Json
+  isMock      Boolean  @default(false) @map("is_mock")
+  createdById String   @map("created_by_id") @db.Char(36)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  business  Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@map("analytics_reports")
+}
+
+model AnalyticsSettings {
+  id                   String   @id @default(uuid()) @db.Char(36)
+  workspaceId          String   @unique @map("workspace_id") @db.Char(36)
+  trackSiteVisits      Boolean  @default(true) @map("track_site_visits")
+  trackEmailEngagement Boolean  @default(true) @map("track_email_engagement")
+  retentionDays        Int      @default(395) @map("retention_days")
+  updatedById          String?  @map("updated_by_id") @db.Char(36)
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("analytics_settings")
 }
