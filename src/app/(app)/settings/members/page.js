@@ -17,5 +17,5 @@ async function View() {
   const { active } = await getActiveWorkspace(user.id);
   if (!active) return null;
   const data = await loadOr404(() => listMembers(user, active.id));
-  return <TeamSettings workspaceId={active.id} workspaceType={active.type} initial={JSON.parse(JSON.stringify(data))} />;
+  return <TeamSettings key={active.id} workspaceId={active.id} workspaceType={active.type} initial={JSON.parse(JSON.stringify(data))} />;
 }

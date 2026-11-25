@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { AuthHeading } from "@/components/auth/auth-heading";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUser } from "@/server/auth/session.js";
@@ -18,6 +19,7 @@ export default function InvitePage({ params }) {
 
 async function Invite({ params }) {
   const { token } = await params;
+  await connection(); // invitation state depends on the current time
   const [user, invite] = await Promise.all([getCurrentUser(), getInvitation(token).catch(() => null)]);
   return <InvitationCard token={token} invite={invite} user={user ? { email: user.email, name: user.name } : null} />;
 }

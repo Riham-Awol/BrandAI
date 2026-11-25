@@ -197,7 +197,7 @@ export function KpiTile({ kpi, days }) {
   const bad = kpi.goodWhen === "down" ? up : down;
   const Icon = up ? ArrowUpRight : down ? ArrowDownRight : Minus;
   return (
-    <div className="min-w-0 rounded-xl border bg-card p-3 shadow-soft sm:p-4">
+    <div data-testid="kpi-tile" className="min-w-0 rounded-xl border bg-card p-3 shadow-soft sm:p-4">
       <p className="text-sm text-muted-foreground">{kpi.label}</p>
       <p className="mt-0.5 text-2xl font-semibold">{formatValue(kpi.value, kpi.format)}</p>
       <p className={cn("mt-1 flex items-center gap-1 text-xs", good ? "text-success" : bad ? "text-destructive" : "text-muted-foreground")}>

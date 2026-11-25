@@ -149,3 +149,12 @@ test("mobile layout: analytics dashboard and post results fit the screen", async
   overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test("mobile layout: account settings and plan page fit the screen", async ({ page }) => {
+  await registerViaUi(page, newUser());
+  for (const path of ["/settings", "/settings/billing", "/settings/members"]) {
+    await page.goto(path);
+    await expect(page.getByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+  }
+});

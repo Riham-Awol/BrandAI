@@ -16,5 +16,5 @@ async function View() {
   const user = await requireUserOrRedirect("/settings/workspace");
   const { active } = await getActiveWorkspace(user.id);
   if (!active) return null;
-  return <WorkspaceSettings initial={JSON.parse(JSON.stringify(await loadOr404(() => getWorkspaceSettings(user, active.id))))} />;
+  return <WorkspaceSettings key={active.id} initial={JSON.parse(JSON.stringify(await loadOr404(() => getWorkspaceSettings(user, active.id))))} />;
 }

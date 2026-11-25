@@ -17,5 +17,5 @@ async function View() {
   const { active } = await getActiveWorkspace(user.id);
   if (!active) return null;
   const data = await loadOr404(() => getBilling(user, active.id));
-  return <BillingSettings workspaceId={active.id} initial={JSON.parse(JSON.stringify(data))} />;
+  return <BillingSettings key={active.id} workspaceId={active.id} initial={JSON.parse(JSON.stringify(data))} />;
 }

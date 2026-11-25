@@ -18,5 +18,5 @@ async function View() {
   if (!active) return null;
   if (active.type !== "AGENCY") return <p className="rounded-xl border p-8 text-center text-sm text-muted-foreground">Client management is for agency workspaces. Create one in Settings → Workspace.</p>;
   const data = await loadOr404(() => listClients(user, active.id));
-  return <ClientsSettings workspaceId={active.id} initial={JSON.parse(JSON.stringify(data))} />;
+  return <ClientsSettings key={active.id} workspaceId={active.id} initial={JSON.parse(JSON.stringify(data))} />;
 }

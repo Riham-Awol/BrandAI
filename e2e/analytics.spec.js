@@ -51,7 +51,7 @@ test.describe("Analytics & Insights", () => {
     expect((await page.request.post(`/api/v1/workspaces/${ws}/automation/items/${item.id}/posted`, { data: { externalUrl: "" } })).ok()).toBe(true);
 
     await page.goto("/analytics");
-    const tile = (label) => page.locator("div.rounded-xl", { has: page.getByText(label, { exact: true }) }).first();
+    const tile = (label) => page.getByTestId("kpi-tile").filter({ has: page.getByText(label, { exact: true }) }).first();
     await expect(tile("Visitors")).toContainText("2");
     await expect(tile("Page views")).toContainText("3");
     await expect(page.getByText("flyer (campaign link)", { exact: true })).toBeVisible();
