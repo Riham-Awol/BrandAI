@@ -8,6 +8,7 @@ import { generateText } from "@/server/ai/orchestrator.js";
 import { requireWorkspaceAccess } from "@/server/permissions/authorize.js";
 import { PERMISSIONS } from "@/server/permissions/roles.js";
 import { findScopedBusiness } from "@/server/businesses/service.js";
+import { assertPlanAllows } from "@/server/billing/entitlements.js";
 import { resolveSiteBrand } from "@/server/brand/approved-brand.js";
 import { findBusinessImage, listBusinessImages, readBusinessImage } from "@/server/storage/business-images.js";
 import { notify } from "@/server/notifications/service.js";
@@ -140,6 +141,7 @@ export async function createWebsite(user, workspaceId, input, request) {
   const scope = await requireWorkspaceAccess(user, workspaceId, input.generate ? PERMISSIONS.AI_GENERATE : PERMISSIONS.BUSINESS_UPDATE);
   if (!scope.can(PERMISSIONS.BUSINESS_UPDATE)) throw Errors.forbidden();
   const business = await findScopedBusiness(scope, input.businessId);
+  await assertPlanAllows(scope.workspaceId, "websites");
   const profile = await profileFor(business.id);
 
   let config;

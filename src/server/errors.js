@@ -23,6 +23,7 @@ export const Errors = {
   conflict: (message) => new AppError("CONFLICT", message, 409),
   rateLimited: (retryAfterSeconds) =>
     new AppError("RATE_LIMITED", "Too many requests. Please try again later.", 429, { retryAfterSeconds }),
+  planLimit: (message = "Your plan doesn't include more of these. Upgrade to add more.") => new AppError("PLAN_LIMIT_REACHED", message, 402),
   usageLimit: (message = "Your workspace has reached its usage limit.") =>
     new AppError("USAGE_LIMIT_REACHED", message, 402),
   notConfigured: (service) =>

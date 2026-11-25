@@ -17,10 +17,11 @@ export async function requireWorkspaceAccess(user, workspaceId, permission) {
 
   const membership = await prisma.workspaceMember.findUnique({
     where: { workspaceId_userId: { workspaceId, userId: user.id } },
-    select: { role: true, workspace: { select: { id: true, name: true, slug: true, type: true, deletedAt: true } } },
+    select: { role: true, workspace: { select: { id: true, name: true, slug: true, type: true, deletedAt: true, suspendedAt: true, agencyWorkspaceId: true } } },
   });
 
   if (!membership || membership.workspace.deletedAt) throw Errors.notFound();
+  if (membership.workspace.suspendedAt) throw Errors.forbidden("This workspace is suspended. Contact support.");
   if (permission && !roleHasPermission(membership.role, permission)) throw Errors.forbidden();
 
   return Object.freeze({

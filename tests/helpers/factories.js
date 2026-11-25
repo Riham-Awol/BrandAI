@@ -11,3 +11,10 @@ export async function createUser(overrides = {}) {
 export async function addMember(workspaceId, userId, role) {
   return prisma.workspaceMember.create({ data: { workspaceId, userId, role } });
 }
+
+/** Puts a workspace on a plan (as a platform admin would), including its usage caps. */
+export async function setPlan(workspaceId, plan) {
+  const { applyPlanLimits } = await import("@/server/billing/entitlements.js");
+  await prisma.subscription.upsert({ where: { workspaceId }, create: { workspaceId, plan, status: "ACTIVE", source: "ADMIN" }, update: { plan, status: "ACTIVE" } });
+  await applyPlanLimits(workspaceId, plan);
+}

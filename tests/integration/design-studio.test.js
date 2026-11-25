@@ -17,7 +17,7 @@ import {
 } from "@/modules/design/service.js";
 import { designBriefSchema, saveDesignSchema } from "@/modules/design/schemas.js";
 import { DESIGN_OPTIONS_FIXTURE } from "@/modules/design/mock-fixtures.js";
-import { addMember, createUser } from "../helpers/factories.js";
+import { addMember, createUser, setPlan } from "../helpers/factories.js";
 
 let prompts;
 beforeEach(() => {
@@ -33,6 +33,7 @@ const spec = DESIGN_OPTIONS_FIXTURE.options[0];
 
 async function setup() {
   const owner = await createUser();
+  await setPlan(owner.workspace.id, "PRO"); // these scenarios use several businesses/websites
   const ws = owner.workspace.id;
   const biz = await createBusiness(owner.user, ws, { name: "Crust & Culture", industry: "Bakery", stage: "STARTING" });
   return { owner, ws, biz };

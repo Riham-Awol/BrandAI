@@ -10,6 +10,7 @@ import { enforceRateLimit } from "../rate-limit/index.js";
 import { decryptSecret, encryptSecret, encryptionConfigured } from "../crypto/secrets.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { generateToken, hashToken } from "../auth/tokens.js";
+import { cancelSubscriptionFor } from "../billing/service.js";
 import { consumeRecoveryCode, generateRecoveryCodes, generateTotpSecret, otpauthUri, verifyTotp } from "../auth/totp.js";
 
 const VERIFY_TTL_HOURS = 24;
@@ -153,13 +154,13 @@ export async function regenerateRecoveryCodes(user, { code }, request) {
  * members (ownership must be transferred first). Owned workspaces are soft
  * deleted, the email is released, and every session ends.
  */
-export async function deleteAccount(user, { password }, request, { beforeDelete } = {}) {
+export async function deleteAccount(user, { password }, request) {
   const u = await loadUser(user.id);
   await checkPassword(u, password);
   const owned = await prisma.workspace.findMany({ where: { ownerId: u.id, deletedAt: null }, select: { id: true, name: true, _count: { select: { members: true } } } });
   const shared = owned.filter((w) => w._count.members > 1);
   if (shared.length) throw new AppError("CONFLICT", `Transfer ownership of ${shared.map((w) => `“${w.name}”`).join(", ")} or remove its members first.`, 409);
-  if (beforeDelete) await beforeDelete(owned.map((w) => w.id));
+  for (const w of owned) await cancelSubscriptionFor(w.id);
   const now = new Date();
   await prisma.$transaction([
     prisma.workspace.updateMany({ where: { id: { in: owned.map((w) => w.id) } }, data: { deletedAt: now } }),

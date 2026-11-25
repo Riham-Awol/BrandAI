@@ -30,6 +30,15 @@ export const AUDIT_ACTIONS = {
   MFA_RECOVERY_USED: "user.mfa_recovery_used",
   MFA_RECOVERY_REGENERATED: "user.mfa_recovery_regenerated",
   ACCOUNT_DELETED: "user.account_deleted",
+  WORKSPACE_UPDATED: "workspace.updated",
+  WORKSPACE_DELETED: "workspace.deleted",
+  WORKSPACE_TRANSFERRED: "workspace.ownership_transferred",
+  MEMBER_INVITED: "member.invited",
+  INVITATION_REVOKED: "member.invitation_revoked",
+  MEMBER_JOINED: "member.joined",
+  MEMBER_ROLE_CHANGED: "member.role_changed",
+  MEMBER_REMOVED: "member.removed",
+  MEMBER_LEFT: "member.left",
 };
 
 /**

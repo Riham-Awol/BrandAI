@@ -5,6 +5,7 @@ import { recordAudit } from "@/server/audit/service.js";
 import { requireWorkspaceAccess } from "@/server/permissions/authorize.js";
 import { PERMISSIONS } from "@/server/permissions/roles.js";
 import { findScopedBusiness } from "@/server/businesses/service.js";
+import { assertPlanAllows } from "@/server/billing/entitlements.js";
 import { createStudioEngine } from "@/server/studio/engine.js";
 import { SECTION_SCHEMAS, checklistStateSchema } from "./schemas.js";
 import { LAUNCH_SECTIONS } from "./sections.js";
@@ -49,6 +50,7 @@ export async function createLaunchProject(user, workspaceId, input, request) {
   const { businessId, ...idea } = input;
   const scope = await requireWorkspaceAccess(user, workspaceId, businessId ? PERMISSIONS.BUSINESS_UPDATE : PERMISSIONS.BUSINESS_CREATE);
   const existing = businessId ? await findScopedBusiness(scope, businessId) : null;
+  if (!existing) await assertPlanAllows(scope.workspaceId, "businesses");
 
   const project = await prisma.$transaction(async (tx) => {
     const business =

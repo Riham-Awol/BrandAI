@@ -32,6 +32,11 @@ export const PERMISSIONS = {
   AUTOMATION_AUTOPILOT: "automation:autopilot",
   // Phase 9: workspace-wide tracking and data-retention choices.
   ANALYTICS_MANAGE: "analytics:manage",
+  // Phase 10: granting/removing admin rights and handing the workspace over are the owner's decisions.
+  MEMBERS_MANAGE_ADMINS: "members:manage_admins",
+  OWNERSHIP_TRANSFER: "workspace:transfer",
+  // Phase 10: agencies add, update and archive client workspaces.
+  CLIENTS_MANAGE: "clients:manage",
 };
 
 const P = PERMISSIONS;
@@ -50,8 +55,9 @@ const ADMIN = [
   P.AUTOMATION_APPROVE,
   P.AUTOMATION_MANAGE,
   P.ANALYTICS_MANAGE,
+  P.CLIENTS_MANAGE,
 ];
-const OWNER = [...ADMIN, P.WORKSPACE_DELETE, P.BILLING_MANAGE, P.AUTOMATION_AUTOPILOT];
+const OWNER = [...ADMIN, P.WORKSPACE_DELETE, P.BILLING_MANAGE, P.AUTOMATION_AUTOPILOT, P.MEMBERS_MANAGE_ADMINS, P.OWNERSHIP_TRANSFER];
 
 export const ROLE_PERMISSIONS = Object.freeze({
   OWNER: new Set(OWNER),

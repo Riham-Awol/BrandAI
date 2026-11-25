@@ -3,6 +3,7 @@ import { prisma } from "../db/prisma.js";
 import { Errors } from "../errors.js";
 import { recordAudit, AUDIT_ACTIONS } from "../audit/service.js";
 import { requireWorkspaceAccess } from "../permissions/authorize.js";
+import { assertPlanAllows } from "../billing/entitlements.js";
 import { PERMISSIONS } from "../permissions/roles.js";
 import { uuidSchema } from "@/validation/common.js";
 
@@ -48,6 +49,7 @@ export async function getBusiness(user, workspaceId, businessId) {
 
 export async function createBusiness(user, workspaceId, input, request) {
   const scope = await requireWorkspaceAccess(user, workspaceId, PERMISSIONS.BUSINESS_CREATE);
+  await assertPlanAllows(scope.workspaceId, "businesses");
   const business = await prisma.business.create({
     data: { ...input, workspaceId: scope.workspaceId, createdById: user.id },
     select: businessSelect,

@@ -11,7 +11,7 @@ import { purgeOldTracking, recordEmailEvent, recordSiteView } from "@/modules/an
 import { signDeliveryToken } from "@/modules/analytics/tracking.js";
 import { allKpis } from "@/modules/analytics/metrics.js";
 import { postMetricsSchema } from "@/modules/analytics/schemas.js";
-import { addMember, createUser } from "../helpers/factories.js";
+import { addMember, createUser, setPlan } from "../helpers/factories.js";
 
 const CHROME = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36";
 const IPHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
@@ -23,6 +23,7 @@ afterEach(() => setProviderOverrides(null));
 
 async function setup() {
   const owner = await createUser();
+  await setPlan(owner.workspace.id, "PRO"); // these scenarios use several businesses/websites
   const ws = owner.workspace.id;
   const biz = await createBusiness(owner.user, ws, { name: "Kirkgate Bakery", stage: "STARTING" });
   const slug = `kirkgate-${randomUUID().slice(0, 8)}`;

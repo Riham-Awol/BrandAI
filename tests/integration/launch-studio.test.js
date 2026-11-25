@@ -14,7 +14,7 @@ import { requireWorkspaceAccess } from "@/server/permissions/authorize.js";
 import { createBusiness } from "@/server/businesses/service.js";
 import { businessProfileSchema } from "@/validation/profile.js";
 import { LAUNCH_SECTIONS } from "@/modules/launch/sections.js";
-import { addMember, createUser } from "../helpers/factories.js";
+import { addMember, createUser, setPlan } from "../helpers/factories.js";
 
 const IDEA = { idea: "A neighbourhood sourdough bakery that also supplies local cafés.", country: "United Kingdom", city: "Leeds", stage: "IDEA", budget: "10k_50k" };
 
@@ -34,6 +34,7 @@ afterEach(() => setProviderOverrides(null));
 
 async function setup() {
   const owner = await createUser();
+  await setPlan(owner.workspace.id, "PRO"); // these scenarios use several businesses/websites
   const project = await createLaunchProject(owner.user, owner.workspace.id, { ...IDEA, businessName: "Crumb" });
   return { owner, project };
 }

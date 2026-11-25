@@ -6,6 +6,8 @@ import { recordAudit, AUDIT_ACTIONS } from "../audit/service.js";
 import { requireWorkspaceAccess } from "../permissions/authorize.js";
 import { PERMISSIONS } from "../permissions/roles.js";
 import { enforceRateLimit } from "../rate-limit/index.js";
+import { checkAiCredits, spendExtraCredit } from "../billing/entitlements.js";
+import { assertAiAvailable } from "../platform/settings.js";
 import { assertWithinLimits } from "../usage/service.js";
 import { getApprovedContext } from "../businesses/context-service.js";
 import { renderContextForPrompt } from "../businesses/context-utils.js";
@@ -38,7 +40,10 @@ const BASE_SYSTEM = [
 export async function generateText({ user, workspaceId, businessId, module, task, instructions, input, schema, model, effort, maxTokens, request }) {
   const scope = await requireWorkspaceAccess(user, workspaceId, PERMISSIONS.AI_GENERATE);
   await enforceRateLimit("aiGenerate", `user:${user.id}`);
-  await assertWithinLimits(scope.workspaceId, ["AI_TEXT_REQUESTS", "AI_COST_MICRO_USD"]);
+  await assertAiAvailable();
+  await assertWithinLimits(scope.workspaceId, ["AI_COST_MICRO_USD"]);
+  // Monthly AI credits come from the plan (an agency's clients share the agency's credits), then extra credits.
+  const credits = await checkAiCredits(scope.workspaceId);
 
   const context = businessId ? await getApprovedContext(scope, businessId) : null;
   const provider = getTextProvider();
@@ -97,6 +102,7 @@ export async function generateText({ user, workspaceId, businessId, module, task
         },
       }),
     ]);
+    if (credits.useExtra) await spendExtraCredit(credits.accountId, generation.id);
     await recordAudit({ action: AUDIT_ACTIONS.AI_GENERATION, actorId: user.id, workspaceId, entityType: "ai_generation", entityId: generation.id, metadata: { module, task }, request });
 
     return { generationId: generation.id, text: result.text, data: result.data, model: result.model, provider: result.provider ?? provider.name, isMock: provider.isMock === true, usage: { ...result.usage, costMicroUsd: cost.toString() } };

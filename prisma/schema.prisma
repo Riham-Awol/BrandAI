@@ -94,16 +94,26 @@ enum WorkspaceType {
 }
 
 model Workspace {
-  id        String        @id @default(uuid()) @db.Char(36)
-  name      String        @db.VarChar(120)
-  slug      String        @unique @db.VarChar(80)
-  type      WorkspaceType @default(PERSONAL)
-  ownerId   String        @map("owner_id") @db.Char(36)
-  createdAt DateTime      @default(now()) @map("created_at")
-  updatedAt DateTime      @updatedAt @map("updated_at")
-  deletedAt DateTime?     @map("deleted_at")
+  id                String        @id @default(uuid()) @db.Char(36)
+  name              String        @db.VarChar(120)
+  slug              String        @unique @db.VarChar(80)
+  type              WorkspaceType @default(PERSONAL)
+  ownerId           String        @map("owner_id") @db.Char(36)
+  // Phase 10: a client workspace managed by an agency workspace (shares the agency's plan and AI credits).
+  agencyWorkspaceId String?       @map("agency_workspace_id") @db.Char(36)
+  // Phase 10: suspended by a platform admin (members can't open it).
+  suspendedAt       DateTime?     @map("suspended_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+  deletedAt         DateTime?     @map("deleted_at")
 
   owner              User                  @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  agency             Workspace?            @relation("AgencyClients", fields: [agencyWorkspaceId], references: [id], onDelete: SetNull)
+  clientWorkspaces   Workspace[]           @relation("AgencyClients")
+  subscription       Subscription?
+  creditLedger       AiCreditEntry[]
+  agencyClients      AgencyClient[]        @relation("AgencyClientAgency")
+  clientProfile      AgencyClient?         @relation("AgencyClientWorkspace")
   members            WorkspaceMember[]
   businesses         Business[]
   aiGenerations      AiGeneration[]
@@ -138,6 +148,7 @@ model Workspace {
 
   @@index([ownerId])
   @@index([deletedAt])
+  @@index([agencyWorkspaceId])
   @@map("workspaces")
 }
 
@@ -1518,4 +1529,96 @@ model WorkspaceInvitation {
   @@index([workspaceId, acceptedAt])
   @@index([email])
   @@map("workspace_invitations")
+}
+
+enum PlanKey {
+  FREE
+  PRO
+  AGENCY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+/// The workspace's plan. Without a row the workspace is on FREE. Stripe is the source of truth for paid plans
+/// (kept in sync by the webhook); `source = ADMIN` marks a plan assigned by a platform admin.
+model Subscription {
+  id                   String             @id @default(uuid()) @db.Char(36)
+  workspaceId          String             @unique @map("workspace_id") @db.Char(36)
+  plan                 PlanKey            @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  source               String             @default("STRIPE") @db.VarChar(10)
+  stripeCustomerId     String?            @unique @map("stripe_customer_id") @db.VarChar(255)
+  stripeSubscriptionId String?            @unique @map("stripe_subscription_id") @db.VarChar(255)
+  stripePriceId        String?            @map("stripe_price_id") @db.VarChar(255)
+  currentPeriodEnd     DateTime?          @map("current_period_end")
+  cancelAtPeriodEnd    Boolean            @default(false) @map("cancel_at_period_end")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+/// Extra AI credits (top-ups and admin grants, positive) and their use beyond the monthly allowance (negative).
+model AiCreditEntry {
+  id          String   @id @default(uuid()) @db.Char(36)
+  workspaceId String   @map("workspace_id") @db.Char(36)
+  amount      Int
+  kind        String   @db.VarChar(20)
+  reference   String?  @db.VarChar(255)
+  note        String?  @db.VarChar(300)
+  createdById String?  @map("created_by_id") @db.Char(36)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([kind, reference])
+  @@index([workspaceId, createdAt])
+  @@map("ai_credit_entries")
+}
+
+/// Processed Stripe webhook events (idempotency).
+model BillingEvent {
+  id          String   @id @db.VarChar(255)
+  type        String   @db.VarChar(100)
+  processedAt DateTime @default(now()) @map("processed_at")
+
+  @@map("billing_events")
+}
+
+/// An agency's client: links the agency workspace to the client's own workspace.
+model AgencyClient {
+  id                String   @id @default(uuid()) @db.Char(36)
+  agencyWorkspaceId String   @map("agency_workspace_id") @db.Char(36)
+  clientWorkspaceId String   @unique @map("client_workspace_id") @db.Char(36)
+  contactName       String?  @map("contact_name") @db.VarChar(120)
+  contactEmail      String?  @map("contact_email") @db.VarChar(320)
+  status            String   @default("ACTIVE") @db.VarChar(20)
+  notes             String?  @db.Text
+  createdById       String   @map("created_by_id") @db.Char(36)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  agency Workspace @relation("AgencyClientAgency", fields: [agencyWorkspaceId], references: [id], onDelete: Cascade)
+  client Workspace @relation("AgencyClientWorkspace", fields: [clientWorkspaceId], references: [id], onDelete: Cascade)
+
+  @@index([agencyWorkspaceId, status])
+  @@map("agency_clients")
+}
+
+/// Platform-wide switches set by platform admins (e.g. pausing AI generation).
+model PlatformSetting {
+  key         String   @id @db.VarChar(60)
+  value       Json
+  updatedById String?  @map("updated_by_id") @db.Char(36)
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_settings")
 }

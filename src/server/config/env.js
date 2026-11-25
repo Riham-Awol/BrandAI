@@ -52,6 +52,14 @@ const envSchema = z.object({
   EMAIL_PROVIDER: z.enum(["console", "resend", "none"]).default("console"),
   EMAIL_FROM: z.preprocess(emptyToUndefined, z.string().default("Brand AI <no-reply@example.com>")),
   RESEND_API_KEY: optionalString,
+  // Phase 10: Resend webhook signing secret (bounces/complaints).
+  RESEND_WEBHOOK_SECRET: optionalString,
+  // Phase 10: Stripe (payments). Missing values → checkout reports SERVICE_NOT_CONFIGURED.
+  STRIPE_SECRET_KEY: optionalString,
+  STRIPE_WEBHOOK_SECRET: optionalString,
+  STRIPE_PRICE_PRO: optionalString,
+  STRIPE_PRICE_AGENCY: optionalString,
+  STRIPE_PRICE_CREDITS_500: optionalString,
 
   // Rate limiting
   RATE_LIMIT_STORE: z.enum(["database", "memory"]).default("database"),

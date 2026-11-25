@@ -13,7 +13,7 @@ import {
   updateSubmission, updateWebsite, verifyCustomDomain,
 } from "@/modules/website/service.js";
 import { createWebsiteSchema, siteConfigSchema, submissionSchema, updateWebsiteSchema } from "@/modules/website/schemas.js";
-import { addMember, createUser } from "../helpers/factories.js";
+import { addMember, createUser, setPlan } from "../helpers/factories.js";
 
 let prompts;
 beforeEach(() => {
@@ -30,6 +30,7 @@ const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a
 
 async function setup() {
   const owner = await createUser();
+  await setPlan(owner.workspace.id, "PRO"); // these scenarios use several businesses/websites
   const ws = owner.workspace.id;
   const biz = await createBusiness(owner.user, ws, { name: "Kirkgate Bakery", industry: "Bakery", stage: "STARTING" });
   return { owner, ws, biz };
