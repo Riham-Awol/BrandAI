@@ -21,7 +21,8 @@ is committed or baked into images.
 | `NEXTAUTH_SECRET` | random, e.g. `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
 | `INTEGRATIONS_ENCRYPTION_KEY` | 32 random bytes, base64 (same command). **Back it up**: it encrypts two-factor secrets and channel credentials |
 | `CRON_SECRET` | random string; the scheduler sends it as `Authorization: Bearer …` |
-| `AI_TEXT_PROVIDER`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, `AI_TEXT_FALLBACK_PROVIDERS` | free AI (Gemini, falling back to OpenRouter free models) |
+| `AI_TEXT_PROVIDER`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, `AI_TEXT_FALLBACK_PROVIDERS` | free AI (Gemini, falling back to OpenRouter free models; add `cloudflare` and/or `groq` for more free capacity) |
+| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `GROQ_API_KEY` | optional extra free providers (Cloudflare Workers AI, Groq) |
 | `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM` | email (Resend free tier; verify your domain to email other people) |
 | `STORAGE_PROVIDER` | `database` (simple, ≤5 MB files) or `s3` with `S3_*` (Cloudflare R2 free tier) |
 | `RATE_LIMIT_STORE` | `database` |

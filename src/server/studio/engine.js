@@ -3,6 +3,7 @@ import { prisma } from "../db/prisma.js";
 import { AppError, Errors } from "../errors.js";
 import { recordAudit } from "../audit/service.js";
 import { generateText } from "../ai/orchestrator.js";
+import { rememberApproved } from "../ai/memory.js";
 import { requireWorkspaceAccess } from "../permissions/authorize.js";
 import { PERMISSIONS } from "../permissions/roles.js";
 import { flattenZodError, uuidSchema } from "@/validation/common.js";
@@ -199,13 +200,18 @@ export function createStudioEngine(config) {
     const scope = await requireWorkspaceAccess(user, workspaceId, PERMISSIONS.BUSINESS_UPDATE);
     const project = await findScopedProject(scope, projectId);
     if (!uuidSchema.safeParse(outputId).success) throw Errors.notFound();
-    const row = await prisma.projectOutput.findFirst({ where: { id: outputId, projectId: project.id, section }, select: { id: true } });
+    const row = await prisma.projectOutput.findFirst({ where: { id: outputId, projectId: project.id, section }, select: { id: true, source: true, content: true, isMock: true } });
     if (!row) throw Errors.notFound();
     await prisma.$transaction([
       prisma.projectOutput.updateMany({ where: { projectId: project.id, section, isAccepted: true }, data: { isAccepted: false } }),
       prisma.projectOutput.update({ where: { id: row.id }, data: { isAccepted: true } }),
     ]);
     await recordAudit({ action: audit("section_accepted"), actorId: user.id, workspaceId, entityType: "project_output", entityId: row.id, metadata: { section }, request });
+    // The accepted version becomes an example for this business's future "<module>/<section>" requests.
+    await rememberApproved({
+      workspaceId: scope.workspaceId, businessId: project.businessId, module, task: section, content: row.content,
+      source: row.source === "EDIT" ? "EDITED" : "APPROVED", sourceRef: `studio:${project.id}:${section}`, userId: user.id, isMock: row.isMock,
+    });
     return { id: row.id, isAccepted: true };
   }
 

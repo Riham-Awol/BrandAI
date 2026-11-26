@@ -154,3 +154,13 @@ test.describe("Account, team, plans and administration", () => {
     await other.close();
   });
 });
+
+test("AI memory page: empty state and learning switch", async ({ page }) => {
+  await registerViaUi(page, newUser());
+  await page.goto("/settings/ai-memory");
+  await expect(page.getByText(/Nothing learned yet/)).toBeVisible();
+  await page.getByRole("button", { name: "Turn learning off" }).click();
+  await expect(page.getByText("Learning is off. Saved examples are no longer used.")).toBeVisible();
+  await page.getByRole("button", { name: "Turn learning on" }).click();
+  await expect(page.getByText("Learning is on.")).toBeVisible();
+});

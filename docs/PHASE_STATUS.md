@@ -23,6 +23,15 @@ same way later (`openrouter,groq`).
 
 ---
 
+## After Phase 10 — free AI improvements (2026-11-26, requested by the owner)
+- **Learning from approvals** (ADR 017): accepted studio results and "ready" social posts become examples for the
+  same business and task; the AI sees up to 3 of them. Settings → AI memory to view/forget/switch off.
+- **Cloudflare Workers AI** free provider (`cloudflare`), usable as primary or fallback. Configured and unit
+  tested; not yet run against a live Cloudflare account.
+- Live deployment: https://brandai-app.vercel.app (Vercel Hobby + TiDB Cloud free; all migrations applied).
+
+---
+
 ## Phase 10 — SaaS Administration & Production Launch
 
 Plan and acceptance criteria: [phases/PHASE_10.md](./phases/PHASE_10.md)

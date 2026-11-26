@@ -90,6 +90,7 @@ businesses 1─* business_products | business_services | business_locations | bu
 | `billing_events` *(P10)* | Processed Stripe event ids (idempotency) | PK `id` | — |
 | `agency_clients` *(P10)* | Agency ↔ client workspace link, contact, status, notes | unique `client_workspace_id` | cascade |
 | `platform_settings` *(P10)* | Key/value platform switches (`aiPaused`, `signupsOpen`) | PK `key` | — |
+| `ai_examples` *(post-P10)* | Approved/edited AI outputs reused as style examples: `module`, `task`, `source` (APPROVED/EDITED), `content`, unique `source_ref`; newest 20 per business+task. `workspaces.ai_learning_enabled` switches learning | unique `source_ref`; idx (`business_id`,`module`,`task`,`updated_at`) | cascade |
 | `analytics_settings` *(P9)* | Per workspace: `track_site_visits`, `track_email_engagement`, `retention_days` (30–730, default 395) | unique `workspace_id` | cascade |
 | `business_details` *(P7)* | 1:1 business: legal name, address, contact, registration/tax numbers, bank details, `currency`, `default_tax_rate_bp`, `payment_terms_days`, invoice/quote prefixes and next numbers | unique `business_id` | cascade with business |
 | `brand_materials` *(P7)* | Branded item: `kind` (card, letterhead, tshirt, uniform, bag, mug, label, packaging), `name`, `spec` JSON, `version`, `is_mock` | idx (`workspace_id`,`deleted_at`), (`business_id`,`kind`) | soft delete |

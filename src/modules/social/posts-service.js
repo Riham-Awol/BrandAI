@@ -3,6 +3,7 @@ import { prisma } from "@/server/db/prisma.js";
 import { AppError, Errors } from "@/server/errors.js";
 import { recordAudit } from "@/server/audit/service.js";
 import { generateText } from "@/server/ai/orchestrator.js";
+import { forgetSource, rememberApproved } from "@/server/ai/memory.js";
 import { requireWorkspaceAccess } from "@/server/permissions/authorize.js";
 import { PERMISSIONS } from "@/server/permissions/roles.js";
 import { uuidSchema } from "@/validation/common.js";
@@ -155,7 +156,14 @@ export async function updatePost(user, workspaceId, projectId, postId, input, re
     if (post.status === "IDEA" && !input.status) data.status = "DRAFT";
     ops.push(prisma.socialPostRevision.create({ data: { postId: post.id, version: data.version, source: "EDIT", content, createdById: user.id } }));
   }
-  await prisma.$transaction([prisma.socialPost.update({ where: { id: post.id }, data }), ...ops]);
+  const [saved] = await prisma.$transaction([prisma.socialPost.update({ where: { id: post.id }, data }), ...ops]);
+  // A post marked "ready" teaches the AI this business's style; moving it back removes the example.
+  if (saved.status === "READY" && saved.content) {
+    const edited = await prisma.socialPostRevision.count({ where: { postId: post.id, source: "EDIT" } });
+    await rememberApproved({ workspaceId: project.workspaceId, businessId: project.businessId, module: "social", task: "posts", content: saved.content, source: edited ? "EDITED" : "APPROVED", sourceRef: `social_post:${post.id}`, userId: user.id, isMock: saved.isMock });
+  } else if (post.status === "READY" && saved.status !== "READY") {
+    await forgetSource(`social_post:${post.id}`);
+  }
   await recordAudit({ action: "social.post_updated", actorId: user.id, workspaceId, entityType: "social_post", entityId: post.id, metadata: { fields: Object.keys(input) }, request });
   return getPost(user, workspaceId, projectId, post.id);
 }

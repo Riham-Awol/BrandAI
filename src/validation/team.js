@@ -25,3 +25,6 @@ export const clientSchema = z.object({
   notes: optionalText(2000),
 });
 export const clientUpdateSchema = clientSchema.partial().extend({ status: z.enum(["ACTIVE", "PAUSED", "ARCHIVED"]).optional() });
+
+export const aiMemoryQuerySchema = z.object({ businessId: z.preprocess((v) => (v === "" ? undefined : v), z.uuid().optional()) });
+export const aiLearningSchema = z.object({ enabled: z.boolean() });

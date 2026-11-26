@@ -24,7 +24,7 @@ const envSchema = z.object({
 
   // AI
   // Free options: gemini (default), groq, openrouter, ollama, openai_compatible. Paid: anthropic.
-  AI_TEXT_PROVIDER: z.enum(["gemini", "groq", "openrouter", "ollama", "openai_compatible", "anthropic", "mock"]).default("gemini"),
+  AI_TEXT_PROVIDER: z.enum(["gemini", "groq", "openrouter", "cloudflare", "ollama", "openai_compatible", "anthropic", "mock"]).default("gemini"),
   AI_IMAGE_PROVIDER: z.enum(["none", "mock"]).default("none"),
   AI_TEXT_MODEL: optionalString,
   AI_TEXT_FALLBACK_MODELS: optionalString,
@@ -35,6 +35,8 @@ const envSchema = z.object({
   GEMINI_API_KEY: optionalString,
   GROQ_API_KEY: optionalString,
   OPENROUTER_API_KEY: optionalString,
+  CLOUDFLARE_ACCOUNT_ID: optionalString,
+  CLOUDFLARE_API_TOKEN: optionalString,
   AI_ALLOW_MOCK: z.preprocess(emptyToUndefined, z.enum(["true", "false"]).default("false")),
   ANTHROPIC_API_KEY: optionalString,
 

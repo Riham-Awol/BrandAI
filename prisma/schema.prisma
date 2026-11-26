@@ -103,6 +103,8 @@ model Workspace {
   agencyWorkspaceId String?       @map("agency_workspace_id") @db.Char(36)
   // Phase 10: suspended by a platform admin (members can't open it).
   suspendedAt       DateTime?     @map("suspended_at")
+  // The AI learns from outputs this workspace approves (examples per business and task). Off = no learning, no use.
+  aiLearningEnabled Boolean       @default(true) @map("ai_learning_enabled")
   createdAt         DateTime      @default(now()) @map("created_at")
   updatedAt         DateTime      @updatedAt @map("updated_at")
   deletedAt         DateTime?     @map("deleted_at")
@@ -114,6 +116,7 @@ model Workspace {
   creditLedger       AiCreditEntry[]
   agencyClients      AgencyClient[]        @relation("AgencyClientAgency")
   clientProfile      AgencyClient?         @relation("AgencyClientWorkspace")
+  aiExamples         AiExample[]
   members            WorkspaceMember[]
   businesses         Business[]
   aiGenerations      AiGeneration[]
@@ -233,6 +236,7 @@ model Business {
   emailCampaigns   EmailCampaign[]
   postMetrics      PostMetric[]
   analyticsReports AnalyticsReport[]
+  aiExamples       AiExample[]
 
   @@index([workspaceId, deletedAt])
   @@index([createdById])
@@ -1625,4 +1629,26 @@ model PlatformSetting {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("platform_settings")
+}
+
+/// An approved (or approved after editing) AI output, reused as a style example for the same business and task.
+model AiExample {
+  id          String   @id @default(uuid()) @db.Char(36)
+  workspaceId String   @map("workspace_id") @db.Char(36)
+  businessId  String   @map("business_id") @db.Char(36)
+  module      String   @db.VarChar(40)
+  task        String   @db.VarChar(60)
+  source      String   @db.VarChar(10)
+  content     Json
+  sourceRef   String   @unique @map("source_ref") @db.VarChar(80)
+  createdById String?  @map("created_by_id") @db.Char(36)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  business  Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, module, task, updatedAt])
+  @@index([workspaceId])
+  @@map("ai_examples")
 }

@@ -20,3 +20,4 @@ Template: Context · Options · Decision · Consequences.
 | [014](./014-privacy-friendly-analytics.md) | Cookieless first-party analytics; signed email tracking; AI explains code-computed metrics | Accepted |
 | [015](./015-plans-billing-and-credits.md) | Plans in code, Stripe as billing source of truth, AI credit ledger | Accepted |
 | [016](./016-agency-client-workspaces.md) | Agency clients as separate linked workspaces | Accepted |
+| [017](./017-learning-from-approvals.md) | AI learns from approved results (few-shot memory); Cloudflare Workers AI free provider | Accepted |

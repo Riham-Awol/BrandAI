@@ -275,6 +275,10 @@ redirect elsewhere). Printable report page: `/print/analytics/:reportId`.
 | GET / POST · PATCH · POST | `/workspaces/:ws/clients` · `/clients/:id` · `/clients/:id/share-team` | read / `clients:manage` | agency workspaces only |
 | * | `/admin/overview`, `/admin/users[/:id]`, `/admin/workspaces[/:id/plan\|credits\|suspend]`, `/admin/ai[/pause\|/test]`, `/admin/signups`, `/admin/audit` | platform admin + 2FA (404 otherwise) | |
 
+AI memory (learning from approvals): `GET /workspaces/:ws/ai-memory?businessId` (read) · `DELETE /workspaces/:ws/ai-memory?businessId`
+and `DELETE /workspaces/:ws/ai-memory/:exampleId` (`business:update`) · `PUT /workspaces/:ws/ai-memory/settings { enabled }`
+(`workspace:update`).
+
 Public webhooks: `POST /api/v1/billing/webhook` (Stripe-Signature), `POST /api/v1/email/webhook` (Svix headers
 from Resend). Errors: `PLAN_LIMIT_REACHED` (402), `USAGE_LIMIT_REACHED` (402, AI credits), `AI_PAUSED` (503),
 `MFA_REQUIRED` (403 for admin pages). Sign-in returns `MFA_REQUIRED` / `MFA_INVALID` as the Auth.js error.

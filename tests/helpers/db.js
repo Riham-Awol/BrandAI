@@ -4,7 +4,7 @@ const TABLES = [
   "website_submissions",
   "website_versions",
   "websites", "designs",
-  "workspace_invitations", "agency_clients", "ai_credit_entries", "subscriptions", "billing_events", "platform_settings",
+  "ai_examples", "workspace_invitations", "agency_clients", "ai_credit_entries", "subscriptions", "billing_events", "platform_settings",
   "analytics_settings", "analytics_reports", "post_metrics", "email_events", "site_views",
   "job_locks", "automation_runs", "automation_rules", "reminders", "email_deliveries", "email_campaigns", "email_contacts", "scheduled_items", "integrations", "automation_settings",
   "brand_material_revisions", "brand_materials", "business_documents", "business_details",

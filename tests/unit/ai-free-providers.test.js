@@ -22,6 +22,15 @@ describe("provider presets", () => {
     expect(resolvePreset("openai_compatible", { AI_BASE_URL: "http://x/v1/", AI_TEXT_MODEL: "m" })).toMatchObject({ baseUrl: "http://x/v1", missing: [] });
     expect(resolvePreset("nope", {})).toBeNull();
   });
+  it("puts the Cloudflare account id into the Workers AI endpoint and needs both values", () => {
+    const acct = "0123456789abcdef0123456789abcdef";
+    expect(resolvePreset("cloudflare", {}).missing).toEqual(["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN"]);
+    expect(resolvePreset("cloudflare", { CLOUDFLARE_ACCOUNT_ID: "not-an-id", CLOUDFLARE_API_TOKEN: "t" }).missing).toEqual(["CLOUDFLARE_ACCOUNT_ID"]);
+    const cf = resolvePreset("cloudflare", { CLOUDFLARE_ACCOUNT_ID: acct, CLOUDFLARE_API_TOKEN: "t" }, { primary: false });
+    expect(cf).toMatchObject({ baseUrl: `https://api.cloudflare.com/client/v4/accounts/${acct}/ai/v1`, apiKey: "t", missing: [] });
+    expect(cf.model).toMatch(/^@cf\//);
+    expect(parseFallbackProviders("openrouter, cloudflare", "gemini")).toEqual(["openrouter", "cloudflare"]);
+  });
 });
 
 describe("OpenRouter free-only guard and provider fallback", () => {

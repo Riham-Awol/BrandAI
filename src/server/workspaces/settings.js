@@ -8,7 +8,7 @@ export async function getSettingsLinks(user, workspaceId) {
   if (!workspaceId) return links;
   const scope = await requireWorkspaceAccess(user, workspaceId, PERMISSIONS.WORKSPACE_READ).catch(() => null);
   if (!scope) return links;
-  links.push(["/settings/workspace", "Workspace"], ["/settings/members", "Team"]);
+  links.push(["/settings/workspace", "Workspace"], ["/settings/members", "Team"], ["/settings/ai-memory", "AI memory"]);
   if (scope.can(PERMISSIONS.USAGE_READ)) links.push(["/settings/billing", "Plan & usage"]);
   if (scope.workspace?.type === "AGENCY") links.push(["/settings/clients", "Clients"]);
   if (scope.can(PERMISSIONS.AUDIT_READ)) links.push(["/settings/audit", "Audit log"]);

@@ -31,6 +31,7 @@ Read `docs/PHASE_STATUS.md` first; never start a phase without explicit approval
 - Analytics: metrics are pure functions in `src/modules/analytics/metrics.js` over workspace-scoped aggregates; AI insights only explain computed numbers and pass `checkInsights` (keys + numbers verified). Tracking stays cookieless (no IP storage, DNT/GPC respected, bots filtered) and obeys `analytics_settings`.
 - Plans & billing: limits only via `assertPlanAllows` / `src/server/billing/plans.js`; Stripe is the source of truth for paid plans (webhook, idempotent); AI credits are checked in the orchestrator — never bypass. Agency clients are separate workspaces (`agency_workspace_id`).
 - Platform admin code lives in `src/server/platform/*` and always calls `requirePlatformAdmin` (DB re-check, 2FA). Webhooks verify signatures over the raw body. New audit-worthy actions call `recordAudit`.
+- AI memory: approvals (studio accept, social post READY) call `rememberApproved`; the orchestrator adds `examplesBlock` automatically — new approval points should call `rememberApproved` with a stable `sourceRef`.
 - Studio outputs: store in `projects`/`project_outputs` (append-only versions); render/edit with `src/components/structured/*`.
 - Register a mock fixture for every new AI task so e2e can run with `AI_TEXT_PROVIDER=mock`; fixtures must pass their schema (unit test).
 - Numbers the business relies on (totals, shares) are computed in code, never trusted from AI output. Charts follow the dataviz skill (validated colour tokens, table view).

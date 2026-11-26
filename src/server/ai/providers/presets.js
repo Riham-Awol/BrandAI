@@ -36,6 +36,17 @@ export const TEXT_PROVIDER_PRESETS = {
     // OpenRouter keys can carry paid credit: only ":free" models are ever called.
     freeOnly: true,
   },
+  cloudflare: {
+    label: "Cloudflare Workers AI (free daily allowance, open models)",
+    // The account id is part of the URL: set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN ("Workers AI" permission).
+    baseUrl: "https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/v1",
+    accountEnv: "CLOUDFLARE_ACCOUNT_ID",
+    // Model ids from Cloudflare's catalog (developers.cloudflare.com/workers-ai/models); not yet run live from here.
+    defaultModel: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    fallbackModels: ["@cf/mistralai/mistral-small-3.1-24b-instruct", "@cf/meta/llama-3.1-8b-instruct"],
+    keyEnv: "CLOUDFLARE_API_TOKEN",
+    requiresKey: true,
+  },
   ollama: {
     label: "Ollama (free, runs on your own machine)",
     baseUrl: "http://localhost:11434/v1",
@@ -66,14 +77,22 @@ export function resolvePreset(provider, env, { primary = true } = {}) {
   const preset = TEXT_PROVIDER_PRESETS[provider];
   if (!preset) return null;
   const o = primary ? env : {};
-  const baseUrl = (o.AI_BASE_URL || preset.baseUrl || "").replace(/\/+$/, "");
+  let baseUrl = (o.AI_BASE_URL || preset.baseUrl || "").replace(/\/+$/, "");
+  const missing = [];
+  if (preset.accountEnv && !o.AI_BASE_URL) {
+    const account = String(env[preset.accountEnv] ?? "").trim();
+    if (/^[a-f0-9]{32}$/i.test(account)) baseUrl = baseUrl.replace(`{${preset.accountEnv}}`, account);
+    else {
+      missing.push(preset.accountEnv);
+      baseUrl = "";
+    }
+  }
   let model = o.AI_TEXT_MODEL || preset.defaultModel;
   let fallbackModels = o.AI_TEXT_FALLBACK_MODELS
     ? o.AI_TEXT_FALLBACK_MODELS.split(",").map((m) => m.trim()).filter(Boolean)
     : o.AI_TEXT_MODEL
       ? []
       : (preset.fallbackModels ?? []);
-  const missing = [];
   let paidRejected = false;
   if (preset.freeOnly) {
     fallbackModels = fallbackModels.filter(isFree);
@@ -83,7 +102,7 @@ export function resolvePreset(provider, env, { primary = true } = {}) {
     }
   }
   const apiKey = (preset.keyEnv && env[preset.keyEnv]) || o.AI_API_KEY || undefined;
-  if (!baseUrl) missing.push("AI_BASE_URL");
+  if (!baseUrl && !missing.length) missing.push("AI_BASE_URL");
   if (paidRejected) missing.push(`a free model id ending in ":free" for ${provider} (paid models are disabled)`);
   else if (!model) missing.push("AI_TEXT_MODEL");
   if (preset.requiresKey && !apiKey) missing.push(preset.keyEnv);

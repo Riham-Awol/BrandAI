@@ -7,6 +7,7 @@ import { requireWorkspaceAccess } from "../permissions/authorize.js";
 import { PERMISSIONS } from "../permissions/roles.js";
 import { enforceRateLimit } from "../rate-limit/index.js";
 import { checkAiCredits, spendExtraCredit } from "../billing/entitlements.js";
+import { examplesBlock, examplesForPrompt } from "./memory.js";
 import { assertAiAvailable } from "../platform/settings.js";
 import { assertWithinLimits } from "../usage/service.js";
 import { getApprovedContext } from "../businesses/context-service.js";
@@ -46,10 +47,12 @@ export async function generateText({ user, workspaceId, businessId, module, task
   const credits = await checkAiCredits(scope.workspaceId);
 
   const context = businessId ? await getApprovedContext(scope, businessId) : null;
+  // Learning from approvals: a few outputs this business approved earlier for the same task.
+  const examples = await examplesForPrompt({ workspaceId: scope.workspaceId, businessId, module, task });
   const provider = getTextProvider();
 
   const system = [BASE_SYSTEM, instructions].filter(Boolean).join("\n\n");
-  const prompt = [renderContextForPrompt(context), `<user_input>\n${input ?? ""}\n</user_input>`].filter(Boolean).join("\n\n");
+  const prompt = [renderContextForPrompt(context), examplesBlock(examples), `<user_input>\n${input ?? ""}\n</user_input>`].filter(Boolean).join("\n\n");
 
   const generation = await prisma.aiGeneration.create({
     data: {
@@ -62,7 +65,7 @@ export async function generateText({ user, workspaceId, businessId, module, task
       kind: "TEXT",
       provider: provider.name,
       model: model ?? "default",
-      input: { instructions, input },
+      input: { instructions, input, ...(examples.length ? { examplesUsed: examples.map((e) => e.id) } : {}) },
     },
     select: { id: true },
   });
